@@ -1,0 +1,41 @@
+{
+  "name": "@sb/source",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.14.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "nx run-many -t serve -p server web --output-style=stream",
+    "dev:all": "nx run-many -t serve -p server web gateway --output-style=stream",
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t test",
+    "test:int": "nx run server:test:integration",
+    "lint": "nx run-many -t lint",
+    "typecheck": "nx run-many -t typecheck",
+    "db:migrate": "nx run server:db:migrate",
+    "db:generate": "nx run server:db:generate",
+    "db:seed": "nx run server:db:seed",
+    "db:studio": "nx run server:db:studio",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "gateway:mock": "GATEWAY_DRIVER=mock nx run gateway:serve",
+    "gateway:real": "GATEWAY_DRIVER=applescript nx run gateway:serve",
+    "verify": "nx run-many -t typecheck lint test"
+  },
+  "devDependencies": {
+    "@nx/eslint": "23.2.1",
+    "@types/node": "22.15.3",
+    "@typescript-eslint/eslint-plugin": "8.70.0",
+    "@typescript-eslint/parser": "8.70.0",
+    "esbuild": "0.25.0",
+    "eslint": "9.17.0",
+    "nx": "23.2.1",
+    "prettier": "3.4.2",
+    "tsx": "4.19.2",
+    "typescript": "5.9.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}

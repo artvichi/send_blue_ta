@@ -20,9 +20,20 @@ node_modules/
 dist/
 build/
 coverage/
+.nx/
+vite.config.*.timestamp*
 
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
+# Prisma generated client
+libs/**/generated/
+apps/**/generated/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+.terraform.lock.hcl
+
+# Gateway runtime scratch
+.gateway-cache/

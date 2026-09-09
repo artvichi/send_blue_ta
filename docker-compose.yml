@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: sbta-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sbta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sbta}
+      POSTGRES_DB: ${POSTGRES_DB:-sbta}
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - sbta-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-sbta} -d ${POSTGRES_DB:-sbta}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sbta-pgdata:

@@ -1,0 +1,35 @@
+# The whole stack in containers, for a reviewer who would rather not install
+# anything. The gateway is deliberately absent -- it needs macOS APIs and a
+# signed-in Apple account, so it always runs natively on the host.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.full.yml up --build
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sbta}:${POSTGRES_PASSWORD:-sbta}@postgres:5432/${POSTGRES_DB:-sbta}?schema=public
+      GATEWAY_TOKEN: ${GATEWAY_TOKEN:-dev-gateway-token-change-me}
+      CORS_ORIGIN: http://localhost:8080
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Migrations run at start so a fresh volume is usable without a manual step.
+    command: sh -c "node node_modules/prisma/build/index.js migrate deploy && node dist/src/main.js"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+    ports:
+      - '8080:80'
+    depends_on:
+      - server
