@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { AppShell } from '@/components/app-shell';
 import { SchedulerPage } from '@/features/scheduler';
 import { DashboardPage } from '@/features/dashboard';
+import { SettingsPage } from '@/features/settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ export function App() {
           <Route element={<AppShell />}>
             <Route index element={<SchedulerPage />} />
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

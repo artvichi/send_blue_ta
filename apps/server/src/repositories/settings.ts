@@ -24,11 +24,12 @@ export async function getSettings(db: Db = prisma): Promise<Settings> {
     sendIntervalSeconds: row.sendIntervalSeconds,
     policy: row.policy,
     paused: row.paused,
+    maxAttempts: row.maxAttempts,
   };
 }
 
 export async function updateSettings(
-  patch: Partial<Pick<Settings, 'sendIntervalSeconds' | 'paused'>>,
+  patch: Partial<Pick<Settings, 'sendIntervalSeconds' | 'paused' | 'maxAttempts'>>,
   db: Db = prisma,
 ): Promise<Settings> {
   await getSettings(db);
@@ -37,5 +38,6 @@ export async function updateSettings(
     sendIntervalSeconds: row.sendIntervalSeconds,
     policy: row.policy,
     paused: row.paused,
+    maxAttempts: row.maxAttempts,
   };
 }

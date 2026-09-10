@@ -20,6 +20,7 @@ export interface Settings {
   sendIntervalSeconds: number;
   policy: string;
   paused: boolean;
+  maxAttempts: number;
 }
 
 export interface ApplyStatusInput {

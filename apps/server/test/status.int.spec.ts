@@ -13,6 +13,15 @@ afterAll(async () => {
   await db.$disconnect();
 });
 
+/** Terminal-failure tests must opt out of the retry budget explicitly. */
+async function noRetries() {
+  await db.setting.upsert({
+    where: { id: 1 },
+    update: { maxAttempts: 1 },
+    create: { id: 1, maxAttempts: 1 },
+  });
+}
+
 async function claimOne() {
   await seedMessages(1);
   const claimed = await claimNextMessage(fifoPolicy, new Date(), 120, db);
@@ -100,6 +109,7 @@ describe('applyStatusReport', () => {
   });
 
   it('captures the error text on failure', async () => {
+    await noRetries();
     const claimed = await claimOne();
 
     await applyStatusReport(
@@ -150,6 +160,7 @@ describe('cancelMessage', () => {
 
 describe('retryMessage', () => {
   it('requeues a failed message and clears the previous attempt', async () => {
+    await noRetries();
     const claimed = await claimOne();
     await applyStatusReport(
       {
@@ -173,11 +184,13 @@ describe('retryMessage', () => {
   });
 
   it('refuses to retry anything that did not fail', async () => {
+    await noRetries();
     const [seeded] = await seedMessages(1);
     expect(await retryMessage(seeded!.id, db)).toMatchObject({ ok: false, reason: 'not-failed' });
   });
 
   it('makes a retried message claimable again', async () => {
+    await noRetries();
     const claimed = await claimOne();
     await applyStatusReport(
       {
@@ -230,5 +243,110 @@ describe('the provider GUID is not gated by status rules', () => {
 
     const row = await db.message.findUniqueOrThrow({ where: { id: claimed.id } });
     expect(row.providerGuid).toBe('guid-first');
+  });
+});
+
+describe('automatic retry', () => {
+  async function setMaxAttempts(n: number) {
+    await db.setting.upsert({
+      where: { id: 1 },
+      update: { maxAttempts: n },
+      create: { id: 1, maxAttempts: n },
+    });
+  }
+
+  it('requeues a failure that is still inside the budget', async () => {
+    await setMaxAttempts(3);
+    const claimed = await claimOne();
+
+    const result = await applyStatusReport(
+      {
+        messageId: claimed.id,
+        dispatchToken: claimed.dispatchToken,
+        status: 'FAILED',
+        occurredAt: new Date(),
+        error: 'Messages reported error code 22',
+      },
+      db,
+    );
+
+    expect(result).toMatchObject({ outcome: 'applied', status: 'QUEUED' });
+    const row = await db.message.findUniqueOrThrow({ where: { id: claimed.id } });
+    expect(row.status).toBe('QUEUED');
+    expect(row.attempts).toBe(1);
+    // Kept, so the dashboard can say why the last try did not stick.
+    expect(row.lastError).toContain('error code 22');
+    // Cleared, or the double-send guard would veto the retry.
+    expect(row.providerGuid).toBeNull();
+    expect(row.dispatchToken).toBeNull();
+  });
+
+  it('stops once the budget is exhausted', async () => {
+    await setMaxAttempts(2);
+    await seedMessages(1);
+
+    let last = '';
+    for (let i = 0; i < 2; i++) {
+      const claimed = await claimNextMessage(fifoPolicy, new Date(), 120, db);
+      if (!claimed) throw new Error('expected a claim');
+      const r = await applyStatusReport(
+        {
+          messageId: claimed.id,
+          dispatchToken: claimed.dispatchToken,
+          status: 'FAILED',
+          occurredAt: new Date(),
+          error: 'nope',
+        },
+        db,
+      );
+      last = r.status ?? '';
+    }
+
+    expect(last).toBe('FAILED');
+    const row = await db.message.findFirstOrThrow({});
+    expect(row.status).toBe('FAILED');
+    expect(row.attempts).toBe(2);
+  });
+
+  it('records a FAILED event only for the final failure', async () => {
+    await setMaxAttempts(2);
+    await seedMessages(1);
+
+    for (let i = 0; i < 2; i++) {
+      const claimed = await claimNextMessage(fifoPolicy, new Date(), 120, db);
+      await applyStatusReport(
+        {
+          messageId: claimed!.id,
+          dispatchToken: claimed!.dispatchToken,
+          status: 'FAILED',
+          occurredAt: new Date(),
+        },
+        db,
+      );
+    }
+
+    const row = await db.message.findFirstOrThrow({});
+    const failedEvents = await db.messageEvent.findMany({
+      where: { messageId: row.id, status: 'FAILED' },
+    });
+    // A retried message never reached FAILED, so only the last one is on the timeline.
+    expect(failedEvents).toHaveLength(1);
+  });
+
+  it('never retries when the budget is one', async () => {
+    await setMaxAttempts(1);
+    const claimed = await claimOne();
+
+    const result = await applyStatusReport(
+      {
+        messageId: claimed.id,
+        dispatchToken: claimed.dispatchToken,
+        status: 'FAILED',
+        occurredAt: new Date(),
+      },
+      db,
+    );
+
+    expect(result).toMatchObject({ status: 'FAILED' });
   });
 });

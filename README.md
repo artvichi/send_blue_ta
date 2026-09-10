@@ -241,6 +241,12 @@ failure modes.
 
 ## Things worth knowing
 
+**Failures retry automatically.** A failed send is requeued up to the configured
+attempt budget (default 3, on the Settings tab) and then left failed for a manual
+retry. There is no backoff setting because there is no backoff: the send rate
+already spaces attempts, so a retry inherits it. The table shows the attempt
+count, and `lastError` says why the previous try did not stick.
+
 **`RECEIVED` frequently never arrives.** It requires the recipient to have read
 receipts enabled, which most people do not. `DELIVERED` is treated as a
 legitimate success end-state throughout. This is a property of iMessage, not a

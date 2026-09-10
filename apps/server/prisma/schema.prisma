@@ -135,6 +135,10 @@ model Setting {
   sendIntervalSeconds Int      @default(3600)
   policy              String   @default("FIFO")
   paused              Boolean  @default(false)
+
+  /// How many times a message may be dispatched before it stays FAILED. The
+  /// rate limiter spaces the retries, so this needs no backoff of its own.
+  maxAttempts         Int      @default(3)
   updatedAt           DateTime @updatedAt
 
   @@map("settings")

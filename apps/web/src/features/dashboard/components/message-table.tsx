@@ -44,6 +44,7 @@ export function MessageTable({ filter }: { filter: StatusFilter }) {
                   <th className="px-4 py-3 font-medium">Recipient</th>
                   <th className="px-4 py-3 font-medium">Message</th>
                   <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Tries</th>
                   <th className="px-4 py-3 font-medium">Created</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -63,6 +64,19 @@ export function MessageTable({ filter }: { filter: StatusFilter }) {
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={message.status} />
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {message.attempts > 1 ? (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full border border-warn/30 bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn"
+                            title={message.lastError ?? undefined}
+                          >
+                            <RotateCw className="size-3" />
+                            {message.attempts}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-ink-mute">{message.attempts || '—'}</span>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums text-ink-mute">
                         {formatCompactDateTime(message.createdAt)}
@@ -86,7 +100,7 @@ export function MessageTable({ filter }: { filter: StatusFilter }) {
                     </tr>
                     {expanded === message.id && (
                       <tr className="border-b border-rule-soft">
-                        <td colSpan={5} className="bg-sunk/40 px-4 py-4">
+                        <td colSpan={6} className="bg-sunk/40 px-4 py-4">
                           <MessageTimeline id={message.id} />
                         </td>
                       </tr>

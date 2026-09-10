@@ -90,7 +90,7 @@ export const api = {
 
   getSettings: () => request<SettingsResponse>('/api/settings'),
 
-  updateSettings: (patch: { sendIntervalSeconds?: number; paused?: boolean }) =>
+  updateSettings: (patch: { sendIntervalSeconds?: number; paused?: boolean; maxAttempts?: number }) =>
     request<SettingsResponse>('/api/settings', {
       method: 'PATCH',
       body: JSON.stringify(patch),

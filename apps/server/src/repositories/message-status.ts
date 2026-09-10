@@ -2,6 +2,7 @@ import type { Prisma, MessageStatus } from '../db/generated/client.js';
 import { prisma, type Db } from '../db/prisma.js';
 import { canTransition, isTerminal } from '@sb/shared';
 import type { ApplyStatusInput, ApplyStatusResult } from './types.js';
+import { getSettings } from './settings.js';
 
 /**
  * Apply a gateway status report. Three guards, because reports arrive
@@ -17,7 +18,13 @@ export async function applyStatusReport(
   return db.$transaction(async (tx) => {
     const message = await tx.message.findUnique({
       where: { id: input.messageId },
-      select: { id: true, status: true, dispatchToken: true, providerGuid: true },
+      select: {
+        id: true,
+        status: true,
+        dispatchToken: true,
+        providerGuid: true,
+        attempts: true,
+      },
     });
 
     if (!message) return { outcome: 'ignored', reason: 'not-found' } as const;
@@ -52,7 +59,38 @@ export async function applyStatusReport(
     // Written once, never overwritten: this is the double-send guard.
     if (input.providerGuid && !message.providerGuid) data.providerGuid = input.providerGuid;
 
-    if (input.status === 'FAILED') data.lastError = input.error ?? 'Unknown gateway error';
+    if (input.status === 'FAILED') {
+      data.lastError = input.error ?? 'Unknown gateway error';
+
+      /**
+       * A failure inside the retry budget goes back in the queue rather than
+       * stopping. No backoff of its own is needed: the rate limiter already
+       * spaces attempts by the send interval, so retries inherit it.
+       *
+       * The GUID is cleared with it -- the previous attempt produced no
+       * deliverable message, and leaving it set would make the double-send
+       * guard veto the retry.
+       */
+      const { maxAttempts } = await getSettings(tx as unknown as Db);
+      if (message.attempts < maxAttempts) {
+        await tx.message.update({
+          where: { id: input.messageId },
+          data: {
+            status: 'QUEUED',
+            dispatchToken: null,
+            leaseExpiresAt: null,
+            providerGuid: null,
+            lastError: data.lastError,
+          },
+        });
+        // Deliberately no FAILED event: the message did not reach FAILED, it
+        // went back in the queue. The attempt counter carries the retry story,
+        // and lastError says why the previous try did not stick. Writing one
+        // here would also collide with the unique (messageId, status) row that
+        // a genuine, budget-exhausted failure needs later.
+        return { outcome: 'applied', status: 'QUEUED' } as const;
+      }
+    }
 
     if (isTerminal(input.status)) {
       data.leaseExpiresAt = null;
