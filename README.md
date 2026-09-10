@@ -53,19 +53,31 @@ Open **http://localhost:4320**, schedule a message, then set the send rate to
 ### Sending real iMessages
 
 ```bash
+npm run gateway:setup    # guided macOS permission setup
 npm run gateway:real
 ```
 
-Requires macOS with Messages signed in, plus two permissions granted to **the
-terminal application you run this from** (then restart it):
+Requires macOS with Messages signed in, plus two permissions:
 
-| Permission | Why | Where |
-|---|---|---|
-| **Full Disk Access** | read `chat.db` for delivery status | System Settings → Privacy & Security → Full Disk Access |
-| **Automation** | drive Messages.app via `osascript` | System Settings → Privacy & Security → Automation |
+| Permission | Why |
+|---|---|
+| **Full Disk Access** | read `chat.db` for delivery status |
+| **Automation** | drive Messages.app via `osascript` |
 
-The gateway checks both at startup and refuses to run with an actionable message
-rather than failing on the first real send.
+macOS will not let any program grant these to itself — that is what TCC is for.
+What `gateway:setup` removes is the guesswork around the click:
+
+- **It names the app that actually needs the permission.** The grant belongs to
+  the application hosting your terminal (iTerm, Terminal, VS Code…), *not* to
+  `node`. Adding `node` is the usual reason this silently never works.
+- **It opens the exact settings pane**, and reveals that app in Finder so it can
+  be dragged straight into the list.
+- **It watches for the grant to land** and tells you the moment it does, instead
+  of leaving you to guess whether a restart was needed.
+
+`gateway:real` runs the same check on startup, so it self-heals rather than
+failing on the first real send. Everything works without either permission using
+`npm run gateway:mock`.
 
 ### Everything in containers
 

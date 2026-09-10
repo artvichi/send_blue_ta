@@ -104,10 +104,33 @@ This is a property of iMessage, not a gap in the implementation.
 
 ## macOS permissions
 
-`preflight()` fails at startup with an actionable message rather than at 3am on
-the first real send. Both failure modes need a human to click something:
+Two are needed: **Full Disk Access** (to read `chat.db`) and **Automation** (to
+drive Messages via `osascript`).
 
-- **Full Disk Access** for `chat.db` → System Settings → Privacy & Security
-- **Automation** for `osascript` → System Settings → Privacy & Security
+Neither can be granted programmatically — TCC exists precisely to require a
+human. So `permissions.ts` and `doctor.ts` automate everything *around* the
+click instead:
 
-Grant them to the *terminal application* running the gateway, then restart it.
+**Naming the right application.** TCC attributes a child process's access to the
+*responsible* application, so adding `node` to Full Disk Access does nothing;
+the user has to add whatever hosts the shell. `detectHostApp()` walks the process
+ancestry for an `.app` bundle, falling back to `__CFBundleIdentifier` and then
+`TERM_PROGRAM`. Naming the wrong app is the most common way this setup fails,
+and it fails silently.
+
+**Opening the right pane.** `x-apple.systempreferences:` URLs jump straight to
+Full Disk Access or Automation, and the host app is revealed in Finder so it can
+be dragged into the list.
+
+**Detecting the grant.** A new permission sometimes reaches an already-running
+process and sometimes does not, depending on when TCC last cached the decision.
+Rather than asking the user to guess whether a restart is needed, the doctor
+polls the real check — reading `chat.db` — and reports the moment it succeeds.
+
+`gateway:real` runs the same check in `preflight()` and hands off to the guided
+flow when something is missing, so it self-heals rather than failing at 3am on
+the first real send.
+
+Guiding is skipped when `CI` is set (or `SBTA_NO_GUIDE=1`) — deliberately not a
+TTY check, since task runners pipe stdout and would silently downgrade the
+guided flow to a wall of text at exactly the moment it is most useful.

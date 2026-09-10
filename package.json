@@ -22,7 +22,8 @@
     "db:down": "docker compose down",
     "gateway:mock": "GATEWAY_DRIVER=mock nx run gateway:serve",
     "gateway:real": "GATEWAY_DRIVER=applescript nx run gateway:serve",
-    "verify": "nx run-many -t typecheck lint test"
+    "verify": "nx run-many -t typecheck lint test",
+    "gateway:setup": "tsx apps/gateway/src/setup.ts"
   },
   "devDependencies": {
     "@nx/eslint": "23.2.1",

@@ -7,8 +7,9 @@ import {
   appleTimeToDate,
   findSentMessage,
   getMessageState,
-  queryChatDb,
 } from '../chatdb.js';
+import { hasAutomationAccess, hasFullDiskAccess } from '../permissions.js';
+import { runDoctor } from '../doctor.js';
 import type { MessageDriver, StatusEvent, Unsubscribe } from './types.js';
 
 const execFileAsync = promisify(execFile);
@@ -36,26 +37,33 @@ export function createAppleScriptDriver(): MessageDriver {
     name: 'applescript',
 
     /**
-     * Fail at startup with something actionable rather than at 3am on the first
-     * real send. Both failure modes here need a human to click something in
-     * System Settings, so the message says exactly what.
+     * Verify both macOS permissions before any message is claimed.
+     *
+     * When something is missing this hands off to the guided setup rather than
+     * printing instructions and quitting: it names the app that actually needs
+     * the permission, opens the right settings pane, and waits for the grant to
+     * land. Failing at startup beats failing at 3am on the first real send.
      */
     async preflight() {
-      await queryChatDb('SELECT COUNT(*) AS c FROM message LIMIT 1;');
-      logger.info('chat.db is readable (Full Disk Access granted)');
+      const [diskOk, automationOk] = await Promise.all([
+        hasFullDiskAccess(),
+        hasAutomationAccess(),
+      ]);
 
-      try {
-        await execFileAsync('osascript', [
-          '-e',
-          'tell application "System Events" to return name of first process whose frontmost is true',
-        ]);
-      } catch {
+      if (diskOk && automationOk) {
+        logger.info('macOS permissions in place (Full Disk Access + Automation)');
+        return;
+      }
+
+      const result = await runDoctor();
+      if (!result.ready) {
         throw new Error(
-          'Cannot run AppleScript. Grant Automation/Accessibility permission to this terminal:\n' +
-            '  System Settings > Privacy & Security > Automation.',
+          'The gateway cannot send real iMessages without both permissions.\n' +
+            '  Re-run `npm run gateway:setup` once they are granted, or use\n' +
+            '  `npm run gateway:mock` to run the system without sending anything.',
         );
       }
-      logger.info('AppleScript is available');
+      logger.info('macOS permissions in place (Full Disk Access + Automation)');
     },
 
     async send(to: string, body: string) {

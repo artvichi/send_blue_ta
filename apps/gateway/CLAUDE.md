@@ -34,4 +34,11 @@ error.
 - Full Disk Access → `chat.db`
 - Automation → `osascript`
 
-Both are granted to the *terminal application*, and it must be restarted after.
+Both belong to the *application hosting the terminal*, never to `node`. That is
+what `detectHostApp()` exists to work out, and getting it wrong sends the user to
+tick a box that grants nothing.
+
+`npm run gateway:setup` runs the guided flow; `preflight()` calls the same doctor
+so `gateway:real` self-heals. Guiding is gated on `CI`, not on `isTTY` — task
+runners pipe stdout, and a TTY check silently disables the guidance exactly when
+it is needed.
