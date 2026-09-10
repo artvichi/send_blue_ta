@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GATEWAY_TOKEN: ci-token
+  DATABASE_URL: postgresql://sbta:sbta@localhost:5432/sbta?schema=public
+  TEST_DATABASE_URL: postgresql://sbta:sbta@localhost:5432/sbta_test?schema=public
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    # A real Postgres, because the properties the integration suite asserts --
+    # SKIP LOCKED, transactional status application, unique constraints -- exist
+    # only in the database. A mock would prove nothing about them.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: sbta
+          POSTGRES_PASSWORD: sbta
+          POSTGRES_DB: sbta
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U sbta"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Nx affected needs history
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Create the integration database
+        run: PGPASSWORD=sbta psql -h localhost -U sbta -d sbta -c 'CREATE DATABASE sbta_test;'
+
+      - name: Migrate
+        run: |
+          npx nx run server:db:deploy
+          DATABASE_URL="$TEST_DATABASE_URL" npx nx run server:db:deploy
+
+      - name: Integration tests
+        run: npm run test:int
+
+      - name: Build
+        run: npm run build
