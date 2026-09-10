@@ -35,10 +35,25 @@ export const reportStatusSchema = z.object({
 
 export type ReportStatusInput = z.infer<typeof reportStatusSchema>;
 
+/**
+ * The gateway reports what it can actually do, not just that it is alive.
+ * macOS permissions cannot be granted programmatically, so the UI needs to know
+ * which are missing in order to point a human at the right settings pane.
+ */
+export const gatewayCapabilitiesSchema = z.object({
+  fullDiskAccess: z.boolean(),
+  automation: z.boolean(),
+  /** The app the permissions belong to -- never `node`. */
+  hostApp: z.string().nullable(),
+});
+
+export type GatewayCapabilities = z.infer<typeof gatewayCapabilitiesSchema>;
+
 export const heartbeatSchema = z.object({
   gatewayId: z.string().min(1),
   driver: z.string().min(1),
   version: z.string().min(1),
+  capabilities: gatewayCapabilitiesSchema.optional(),
 });
 
 export type HeartbeatInput = z.infer<typeof heartbeatSchema>;

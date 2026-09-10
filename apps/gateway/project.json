@@ -10,7 +10,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; exec tsx watch src/main.ts'",
+        "command": "../../scripts/with-env.sh tsx watch src/main.ts",
         "cwd": "apps/gateway"
       }
     },

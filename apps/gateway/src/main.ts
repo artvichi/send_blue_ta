@@ -7,15 +7,15 @@ async function main(): Promise<void> {
   const cfg = config();
   const driver = createDriver();
 
-  // Fail at startup with an actionable message rather than on the first real
-  // send. Both applescript failure modes need someone to click something in
-  // System Settings, so it is better to say so before anything is queued.
-  try {
-    await driver.preflight();
-  } catch (err) {
-    logger.error('preflight failed');
-    console.error(`\n${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(1);
+  // Report rather than refuse: the permissions the real driver needs are
+  // granted by a human in System Settings, and the dashboard is where we ask.
+  const caps = await driver.capabilities();
+  if (!caps.ready) {
+    logger.warn('driver not ready -- the dashboard will show what is missing', {
+      fullDiskAccess: caps.fullDiskAccess,
+      automation: caps.automation,
+      hostApp: caps.hostApp,
+    });
   }
 
   const runner = new GatewayRunner(driver);

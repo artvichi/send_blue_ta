@@ -44,12 +44,13 @@ export function ComposeForm() {
     <Card className="p-6 sm:p-8">
       <form onSubmit={onSubmit} className="flex flex-col gap-6" noValidate>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="to">Phone Number</Label>
+          <Label htmlFor="to">Phone number or email</Label>
           <Input
             id="to"
-            type="tel"
+            type="text"
+            inputMode="text"
             autoComplete="tel"
-            placeholder="+1 (555) 000-0000"
+            placeholder="+1 (555) 000-0000  ·  name@icloud.com"
             aria-invalid={!!errors.to}
             aria-describedby={errors.to ? 'to-error' : undefined}
             {...register('to')}

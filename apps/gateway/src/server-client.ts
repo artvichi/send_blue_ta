@@ -89,10 +89,26 @@ export async function reportStatus(report: StatusReport): Promise<void> {
   logger.debug('status reported', { messageId: report.messageId, status: report.status });
 }
 
-export async function sendHeartbeat(driver: string): Promise<void> {
+export async function sendHeartbeat(
+  driver: string,
+  capabilities?: { ready: boolean; fullDiskAccess: boolean | null; automation: boolean | null; hostApp: string | null },
+): Promise<void> {
   const response = await request('/api/gateway/heartbeat', {
     method: 'POST',
-    body: JSON.stringify({ gatewayId: config().GATEWAY_ID, driver, version: VERSION }),
+    body: JSON.stringify({
+      gatewayId: config().GATEWAY_ID,
+      driver,
+      version: VERSION,
+      ...(capabilities
+        ? {
+            capabilities: {
+              fullDiskAccess: capabilities.fullDiskAccess ?? true,
+              automation: capabilities.automation ?? true,
+              hostApp: capabilities.hostApp,
+            },
+          }
+        : {}),
+    }),
   });
   if (!response.ok && response.status !== 204) {
     logger.debug('heartbeat rejected', { http: response.status });

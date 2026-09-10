@@ -19,6 +19,12 @@ export const gatewayHealthSchema = z.object({
   driver: z.string().nullable(),
   version: z.string().nullable(),
   lastSeenAt: z.string().nullable(),
+  /** Null for the mock driver, which needs no macOS permissions. */
+  fullDiskAccess: z.boolean().nullable(),
+  automation: z.boolean().nullable(),
+  hostApp: z.string().nullable(),
+  /** True when the driver can actually send and report status. */
+  ready: z.boolean(),
 });
 
 export type GatewayHealthDto = z.infer<typeof gatewayHealthSchema>;

@@ -12,8 +12,8 @@ export function createMockDriver(): MessageDriver {
   return {
     name: 'mock',
 
-    async preflight() {
-      logger.info('mock driver ready -- no messages will actually be sent');
+    async capabilities() {
+      return { ready: true, fullDiskAccess: null, automation: null, hostApp: null };
     },
 
     async send(to: string) {

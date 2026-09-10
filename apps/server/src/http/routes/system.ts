@@ -45,12 +45,21 @@ systemRouter.get(
     const online =
       !!latest && Date.now() - latest.lastSeenAt.getTime() < env().GATEWAY_OFFLINE_AFTER_MS;
 
+    // The mock driver reports nothing, which is how the UI knows not to ask for
+    // permissions that driver does not need.
+    const fullDiskAccess = latest?.fullDiskAccess ?? null;
+    const automation = latest?.automation ?? null;
+
     const health: GatewayHealthDto = {
       online,
       gatewayId: latest?.id ?? null,
       driver: latest?.driver ?? null,
       version: latest?.version ?? null,
       lastSeenAt: latest?.lastSeenAt.toISOString() ?? null,
+      fullDiskAccess,
+      automation,
+      hostApp: latest?.hostApp ?? null,
+      ready: online && fullDiskAccess !== false && automation !== false,
     };
     res.json(health);
   }),

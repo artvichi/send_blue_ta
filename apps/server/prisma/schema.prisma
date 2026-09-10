@@ -148,5 +148,11 @@ model GatewayHeartbeat {
   version    String
   lastSeenAt DateTime @default(now())
 
+  /// What the gateway can actually do. Null for drivers that need no macOS
+  /// permissions, which is how the UI knows not to nag about the mock.
+  fullDiskAccess Boolean?
+  automation     Boolean?
+  hostApp        String?
+
   @@map("gateway_heartbeats")
 }

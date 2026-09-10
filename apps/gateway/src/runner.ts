@@ -3,6 +3,7 @@ import { logger } from './logger.js';
 import { config } from './config.js';
 import type { MessageDriver, Unsubscribe } from './drivers/index.js';
 import { claimLease, reportStatus, sendHeartbeat, ServerUnavailableError } from './server-client.js';
+import type { DriverCapabilities } from './drivers/index.js';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -18,17 +19,26 @@ export class GatewayRunner {
   private running = false;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private readonly watchers = new Set<Unsubscribe>();
+  private caps: DriverCapabilities = {
+    ready: false,
+    fullDiskAccess: null,
+    automation: null,
+    hostApp: null,
+  };
+  private warnedNotReady = false;
 
   constructor(private readonly driver: MessageDriver) {}
 
   async start(): Promise<void> {
     this.running = true;
 
-    this.heartbeatTimer = setInterval(
-      () => void sendHeartbeat(this.driver.name).catch(() => undefined),
-      config().HEARTBEAT_INTERVAL_MS,
-    );
-    await sendHeartbeat(this.driver.name).catch(() => undefined);
+    const beat = async () => {
+      await this.refreshCapabilities();
+      await sendHeartbeat(this.driver.name, this.caps).catch(() => undefined);
+    };
+
+    this.heartbeatTimer = setInterval(() => void beat(), config().HEARTBEAT_INTERVAL_MS);
+    await beat();
 
     logger.info('gateway running', {
       driver: this.driver.name,
@@ -38,6 +48,22 @@ export class GatewayRunner {
 
     while (this.running) {
       try {
+        // Claiming without the permissions to send would just fail every
+        // message it took. Wait, and keep publishing why through the heartbeat.
+        if (!this.caps.ready) {
+          if (!this.warnedNotReady) {
+            this.warnedNotReady = true;
+            logger.warn('waiting on macOS permissions before claiming any messages', {
+              fullDiskAccess: this.caps.fullDiskAccess,
+              automation: this.caps.automation,
+              hostApp: this.caps.hostApp,
+            });
+          }
+          await sleep(3000);
+          await this.refreshCapabilities();
+          continue;
+        }
+
         const lease = await claimLease();
         if (lease) await this.handleLease(lease);
       } catch (err) {
@@ -51,6 +77,18 @@ export class GatewayRunner {
           await sleep(2000);
         }
       }
+    }
+  }
+
+  /** Cheap while granted, brisk while missing, so the UI clears promptly. */
+  private async refreshCapabilities(): Promise<void> {
+    const previous = this.caps.ready;
+    this.caps = await this.driver.capabilities();
+    if (this.caps.ready && !previous) {
+      this.warnedNotReady = false;
+      logger.info('macOS permissions granted -- claiming messages', {
+        driver: this.driver.name,
+      });
     }
   }
 

@@ -10,7 +10,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; exec tsx watch src/main.ts'",
+        "command": "../../scripts/with-env.sh tsx watch src/main.ts",
         "cwd": "apps/server"
       }
     },
@@ -48,8 +48,8 @@
         "db:generate"
       ],
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; cd ../.. && exec vitest run --root apps/server --project unit'",
-        "cwd": "apps/server"
+        "command": "./scripts/with-env.sh npx vitest run --root apps/server --project unit",
+        "cwd": "."
       }
     },
     "test:integration": {
@@ -58,15 +58,15 @@
         "db:generate"
       ],
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; export DATABASE_URL=\"${TEST_DATABASE_URL:-$DATABASE_URL}\"; cd ../.. && exec vitest run --root apps/server --project integration'",
-        "cwd": "apps/server"
+        "command": "./scripts/with-env.sh sh -c 'export DATABASE_URL=\"${TEST_DATABASE_URL:-$DATABASE_URL}\"; exec npx vitest run --root apps/server --project integration'",
+        "cwd": "."
       },
       "cache": false
     },
     "db:generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; exec prisma generate'",
+        "command": "../../scripts/with-env.sh prisma generate",
         "cwd": "apps/server"
       },
       "outputs": [
@@ -77,7 +77,7 @@
     "db:migrate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; exec prisma migrate dev'",
+        "command": "../../scripts/with-env.sh prisma migrate dev",
         "cwd": "apps/server"
       },
       "cache": false
@@ -85,7 +85,7 @@
     "db:deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; exec prisma migrate deploy'",
+        "command": "../../scripts/with-env.sh prisma migrate deploy",
         "cwd": "apps/server"
       },
       "cache": false
@@ -93,7 +93,7 @@
     "db:seed": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; exec tsx prisma/seed.ts'",
+        "command": "../../scripts/with-env.sh tsx prisma/seed.ts",
         "cwd": "apps/server"
       },
       "cache": false
@@ -101,7 +101,7 @@
     "db:studio": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; exec prisma studio'",
+        "command": "../../scripts/with-env.sh prisma studio",
         "cwd": "apps/server"
       },
       "cache": false
@@ -109,7 +109,7 @@
     "db:migrate:test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sh -c 'set -a; [ -f ../../.env ] && . ../../.env; set +a; export DATABASE_URL=\"$TEST_DATABASE_URL\"; exec prisma migrate deploy'",
+        "command": "../../scripts/with-env.sh sh -c 'export DATABASE_URL=\"$TEST_DATABASE_URL\"; exec prisma migrate deploy'",
         "cwd": "apps/server"
       },
       "cache": false

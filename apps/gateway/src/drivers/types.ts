@@ -1,5 +1,14 @@
 import type { MessageStatus } from '@sb/shared';
 
+export interface DriverCapabilities {
+  /** Can claim and send. */
+  ready: boolean;
+  /** Null where the permission does not apply, as with the mock driver. */
+  fullDiskAccess: boolean | null;
+  automation: boolean | null;
+  hostApp: string | null;
+}
+
 export interface StatusEvent {
   status: Extract<MessageStatus, 'SENT' | 'DELIVERED' | 'RECEIVED' | 'FAILED'>;
   occurredAt: Date;
@@ -21,8 +30,12 @@ export type Unsubscribe = () => void;
 export interface MessageDriver {
   readonly name: string;
 
-  /** Verify the driver can actually operate; throws with a fixable message. */
-  preflight(): Promise<void>;
+  /**
+   * What the driver can currently do. Reported rather than thrown: macOS
+   * permissions are granted by a human at an unpredictable moment, so the
+   * gateway stays up and starts working when they appear.
+   */
+  capabilities(): Promise<DriverCapabilities>;
 
   send(to: string, body: string): Promise<SendResult>;
 

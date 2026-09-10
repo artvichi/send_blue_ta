@@ -3,6 +3,7 @@ import { MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GatewayIndicator } from '@/features/dashboard/components/gateway-indicator';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { PermissionBanner } from '@/components/permission-banner';
 
 const NAV = [
   { to: '/', label: 'Schedule', end: true },
@@ -46,7 +47,8 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-5 py-8">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8">
+        <PermissionBanner />
         <Outlet />
       </main>
     </div>

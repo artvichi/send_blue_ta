@@ -9,7 +9,7 @@ import {
   getMessageState,
 } from '../chatdb.js';
 import { hasAutomationAccess, hasFullDiskAccess } from '../permissions.js';
-import { runDoctor } from '../doctor.js';
+import { detectHostApp } from '../host-app.js';
 import type { MessageDriver, StatusEvent, Unsubscribe } from './types.js';
 
 const execFileAsync = promisify(execFile);
@@ -38,33 +38,22 @@ export function createAppleScriptDriver(): MessageDriver {
     name: 'applescript',
 
     /**
-     * Verify both macOS permissions before any message is claimed.
-     *
-     * When something is missing this hands off to the guided setup rather than
-     * printing instructions and quitting: it names the app that actually needs
-     * the permission, opens the right settings pane, and waits for the grant to
-     * land. Failing at startup beats failing at 3am on the first real send.
+     * Report the two macOS permissions rather than demanding them. They are
+     * granted by a human in System Settings at an unpredictable moment, so the
+     * gateway stays up, publishes what is missing, and starts claiming the
+     * instant both appear.
      */
-    async preflight() {
-      const [diskOk, automationOk] = await Promise.all([
+    async capabilities() {
+      const [fullDiskAccess, automation] = await Promise.all([
         hasFullDiskAccess(),
         hasAutomationAccess(),
       ]);
-
-      if (diskOk && automationOk) {
-        logger.info('macOS permissions in place (Full Disk Access + Automation)');
-        return;
-      }
-
-      const result = await runDoctor();
-      if (!result.ready) {
-        throw new Error(
-          'The gateway cannot send real iMessages without both permissions.\n' +
-            '  Re-run `npm run gateway:setup` once they are granted, or use\n' +
-            '  `npm run gateway:mock` to run the system without sending anything.',
-        );
-      }
-      logger.info('macOS permissions in place (Full Disk Access + Automation)');
+      return {
+        ready: fullDiskAccess && automation,
+        fullDiskAccess,
+        automation,
+        hostApp: detectHostApp().name,
+      };
     },
 
     async send(to: string, body: string) {

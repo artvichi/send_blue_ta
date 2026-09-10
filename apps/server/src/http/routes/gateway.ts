@@ -134,16 +134,25 @@ gatewayRouter.post(
   '/heartbeat',
   validateBody(heartbeatSchema),
   asyncRoute(async (req, res) => {
-    const { gatewayId, driver, version } = req.body as {
+    const { gatewayId, driver, version, capabilities } = req.body as {
       gatewayId: string;
       driver: string;
       version: string;
+      capabilities?: { fullDiskAccess: boolean; automation: boolean; hostApp: string | null };
     };
+
+    const caps = capabilities
+      ? {
+          fullDiskAccess: capabilities.fullDiskAccess,
+          automation: capabilities.automation,
+          hostApp: capabilities.hostApp,
+        }
+      : {};
 
     await prisma.gatewayHeartbeat.upsert({
       where: { id: gatewayId },
-      update: { driver, version, lastSeenAt: new Date() },
-      create: { id: gatewayId, driver, version },
+      update: { driver, version, lastSeenAt: new Date(), ...caps },
+      create: { id: gatewayId, driver, version, ...caps },
     });
 
     res.status(204).end();
