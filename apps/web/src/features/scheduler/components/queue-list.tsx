@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Clock, Phone, Inbox, X, Zap } from 'lucide-react';
 import type { MessageDto } from '@sb/shared';
 import { Card } from '@/components/ui/card';
@@ -7,16 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { formatCountdown, formatDateTime, formatPhone } from '@/lib/format';
 import { useCancelMessage, useQueue, useSendNow } from '../api';
-
-/** Ticks once a second so every countdown on the page stays live from one timer. */
-function useNow(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(timer);
-  }, [intervalMs]);
-  return now;
-}
+import { useNow } from '@/hooks/use-now';
 
 function QueueRow({ message, now }: { message: MessageDto; now: number }) {
   const cancel = useCancelMessage();

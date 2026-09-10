@@ -8,7 +8,8 @@ import { notFound } from '../errors.js';
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { prisma } from '../../db/prisma.js';
-import { claimNextMessage, applyStatusReport, hasForcedMessage } from '../../repositories/messages.js';
+import { claimNextMessage, hasForcedMessage } from '../../repositories/message-queue.js';
+import { applyStatusReport } from '../../repositories/message-status.js';
 import { queueState } from '../../scheduler/ticker.js';
 
 export const gatewayRouter = Router();

@@ -1,15 +1,9 @@
-import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
 import type { Db } from '../db/prisma.js';
 import { env } from '../config/env.js';
+import type { Settings } from './types.js';
 
 const SETTINGS_ID = 1;
-
-export interface Settings {
-  sendIntervalSeconds: number;
-  policy: string;
-  paused: boolean;
-}
 
 /**
  * The settings row is created on first read rather than by a migration, so a
@@ -45,15 +39,3 @@ export async function updateSettings(
     paused: row.paused,
   };
 }
-
-/** Shape returned by the raw claim query. Validated rather than cast. */
-export const claimedRowSchema = z.object({
-  id: z.string(),
-  toE164: z.string(),
-  body: z.string(),
-  dispatchToken: z.string(),
-  leaseExpiresAt: z.date(),
-  providerGuid: z.string().nullable(),
-});
-
-export type ClaimedRow = z.infer<typeof claimedRowSchema>;

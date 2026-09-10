@@ -2,7 +2,7 @@ import { prisma } from '../db/prisma.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
 import { getSettings } from '../repositories/settings.js';
-import { lastDispatchedAt, reapExpiredLeases } from '../repositories/messages.js';
+import { lastDispatchedAt, reapExpiredLeases } from '../repositories/message-queue.js';
 import { resolvePolicy } from '../domain/policies/index.js';
 import { fixedIntervalLimiter } from './rate-limit.js';
 

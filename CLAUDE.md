@@ -49,6 +49,13 @@ Nx targets: `nx run <project>:<target>`. Projects are `web`, `server`, `gateway`
 
 - **Shared types live in `libs/shared`.** Zod schemas are the contract; TS types
   are inferred from them. Never hand-duplicate a type across the boundary.
+  `schemas/` is split by domain (message, settings, stats, gateway, common).
+- **Types that cross module boundaries get their own file** (`repositories/types.ts`,
+  `drivers/types.ts`), and pure helpers get theirs (`services/message-dto.ts`,
+  `gateway/apple-time.ts`, `web/hooks/use-now.ts`) rather than accumulating
+  inside a service.
+- **Never commit compiled output next to sources.** A stale `.js` beside its
+  `.ts` silently shadows the real module; `.gitignore` blocks `src/**/*.js`.
 - **Validate at the edge.** Phone numbers are normalized to E.164 once, in the
   route handler.
 - **Routes throw, middleware shapes.** Handlers throw `HttpError`; they never

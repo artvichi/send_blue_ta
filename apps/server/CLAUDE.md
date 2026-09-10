@@ -5,8 +5,15 @@ Express + Prisma over Postgres. Owns the queue and all durable state.
 ## Structure
 
 `config/` env + logger · `db/` Prisma client · `domain/` pure policies ·
-`repositories/` data access · `scheduler/` rate limiter + reaper ·
-`services/` read models · `http/` routes and middleware
+`scheduler/` rate limiter + reaper · `http/` routes and middleware
+
+`repositories/` splits by responsibility rather than by table:
+`message-queue.ts` (claim, lease, reap, queue reads), `message-status.ts`
+(applying gateway reports, the audit log), `messages.ts` (create, cancel, retry,
+read), `settings.ts`, and `types.ts` for the shapes they return.
+
+`services/` holds the read models: `message-dto.ts` is the pure shaping layer
+(queue projection, row-to-DTO), `messages.ts` the queries.
 
 ## Rules specific to this app
 

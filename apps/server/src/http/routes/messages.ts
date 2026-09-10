@@ -9,12 +9,8 @@ import { asyncRoute } from '../middleware/error-handler.js';
 import { pathParam } from '../params.js';
 import { validateBody, validateQuery, validatedQuery } from '../middleware/validate.js';
 import { badRequest, conflict, notFound } from '../errors.js';
-import {
-  cancelMessage,
-  createMessage,
-  forceDispatch,
-  retryMessage,
-} from '../../repositories/messages.js';
+import { forceDispatch } from '../../repositories/message-queue.js';
+import { cancelMessage, createMessage, retryMessage } from '../../repositories/messages.js';
 import { getMessageDetail, listMessages, listQueue } from '../../services/messages.js';
 import { logger } from '../../config/logger.js';
 

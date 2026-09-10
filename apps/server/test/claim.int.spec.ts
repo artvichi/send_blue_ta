@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db, resetDatabase, seedMessages } from './helpers.js';
-import { claimNextMessage, reapExpiredLeases } from '../src/repositories/messages.js';
+import { claimNextMessage, reapExpiredLeases } from '../src/repositories/message-queue.js';
 import { fifoPolicy } from '../src/domain/policies/index.js';
 
 beforeAll(async () => {

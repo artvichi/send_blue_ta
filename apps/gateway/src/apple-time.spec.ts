@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { appleTimeToDate, dateToAppleNs, sqlLiteral } from './chatdb.js';
+import { appleTimeToDate, dateToAppleNs, sqlLiteral } from './apple-time.js';
 
 /**
  * Apple's timestamps are the single easiest thing to get wrong when reading

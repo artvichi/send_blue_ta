@@ -27,6 +27,11 @@ vite.config.*.timestamp*
 libs/**/generated/
 apps/**/generated/
 
+# Compiled output must never sit beside sources: a stale .js next to its .ts
+# silently shadows the real module. (A tsc run once emitted these into libs/.)
+libs/**/src/**/*.js
+apps/**/src/**/*.js
+
 # Terraform
 .terraform/
 *.tfstate

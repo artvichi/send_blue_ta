@@ -5,26 +5,13 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { dateToAppleNs, sqlLiteral } from './apple-time.js';
 
 const execFileAsync = promisify(execFile);
 
+export { appleTimeToDate, dateToAppleNs, sqlLiteral } from './apple-time.js';
+
 export const CHAT_DB_PATH = join(homedir(), 'Library', 'Messages', 'chat.db');
-
-/**
- * Apple timestamps are nanoseconds since 2001-01-01 UTC, not Unix. Very old rows
- * store seconds, so magnitude decides the unit.
- */
-const APPLE_EPOCH_OFFSET_SECONDS = 978_307_200;
-
-export function appleTimeToDate(value: number | null): Date | null {
-  if (!value) return null;
-  const seconds = value > 1e11 ? value / 1e9 : value;
-  return new Date((seconds + APPLE_EPOCH_OFFSET_SECONDS) * 1000);
-}
-
-export function dateToAppleNs(date: Date): number {
-  return (date.getTime() / 1000 - APPLE_EPOCH_OFFSET_SECONDS) * 1e9;
-}
 
 export interface ChatDbRow {
   guid: string;
@@ -90,10 +77,6 @@ export async function queryChatDb(sql: string): Promise<ChatDbRow[]> {
   }
 }
 
-/** Escape a value for inline use in a SQL literal. */
-export function sqlLiteral(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
-}
 
 /**
  * AppleScript reports nothing about what it sent, so the row is located by

@@ -1,53 +1,9 @@
-import type { MessageDto, MessageDetailDto, StatsDto } from '@sb/shared';
-import { projectQueueEtas } from '@sb/shared';
+import type { MessageDetailDto, StatsDto } from '@sb/shared';
 import { prisma } from '../db/prisma.js';
 import type { Message, MessageEvent, MessageStatus } from '../db/generated/client.js';
-import { countsByStatus, findMessage, listQueued } from '../repositories/messages.js';
+import { queueProjection, toDto } from './message-dto.js';
+import { countsByStatus, findMessage } from '../repositories/messages.js';
 import { queueState } from '../scheduler/ticker.js';
-
-/**
- * Queue position and projected send time are derived on read, never stored.
- *
- * Storing them would mean rewriting every row behind a cancelled message, and
- * every row in the queue whenever the interval changes. Deriving them means
- * both are always correct and neither can drift.
- */
-async function queueProjection(): Promise<Map<string, { position: number; etaAt: Date }>> {
-  const state = await queueState();
-  const queued = await listQueued(state.policy);
-  const etas = projectQueueEtas(queued.length, state.etaInput);
-
-  const projection = new Map<string, { position: number; etaAt: Date }>();
-  queued.forEach((row, index) => {
-    const etaAt = etas[index];
-    if (etaAt) projection.set(row.id, { position: index, etaAt });
-  });
-  return projection;
-}
-
-function toDto(
-  message: Message,
-  projection: Map<string, { position: number; etaAt: Date }>,
-): MessageDto {
-  const projected = projection.get(message.id);
-  return {
-    id: message.id,
-    queueSeq: message.queueSeq.toString(),
-    to: message.toE164,
-    body: message.body,
-    status: message.status,
-    attempts: message.attempts,
-    lastError: message.lastError,
-    providerGuid: message.providerGuid,
-    createdAt: message.createdAt.toISOString(),
-    dispatchedAt: message.dispatchedAt?.toISOString() ?? null,
-    sentAt: message.sentAt?.toISOString() ?? null,
-    deliveredAt: message.deliveredAt?.toISOString() ?? null,
-    receivedAt: message.receivedAt?.toISOString() ?? null,
-    position: projected?.position ?? null,
-    etaAt: projected?.etaAt.toISOString() ?? null,
-  };
-}
 
 export interface ListOptions {
   status?: MessageStatus | undefined;
