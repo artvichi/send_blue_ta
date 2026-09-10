@@ -17,16 +17,17 @@ const execFileAsync = promisify(execFile);
 /**
  * Send an iMessage through Messages.app.
  *
- * The buddy lookup is done against the iMessage service explicitly rather than
- * letting Messages choose, so a number that also has an SMS route does not
- * silently go out green. If the recipient has no iMessage account the send
- * fails, which is the honest outcome -- this system is an iMessage scheduler.
+ * The buddy lookup targets the iMessage service explicitly rather than letting
+ * Messages choose, so a number with an SMS route does not silently go out green.
+ * The handle may be a phone number or an Apple ID email -- `participant` accepts
+ * either. If the recipient has no iMessage account the send fails, which is the
+ * honest outcome for an iMessage scheduler.
  */
 const SEND_SCRIPT = `
-on run {targetPhone, messageBody}
+on run {targetHandle, messageBody}
   tell application "Messages"
     set targetService to 1st account whose service type = iMessage
-    set targetBuddy to participant targetPhone of targetService
+    set targetBuddy to participant targetHandle of targetService
     send messageBody to targetBuddy
   end tell
 end run

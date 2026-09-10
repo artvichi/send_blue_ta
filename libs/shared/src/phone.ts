@@ -33,8 +33,12 @@ export function parsePhone(input: string, country: CountryCode = DEFAULT_COUNTRY
   };
 }
 
-/** Format an E.164 number for display, falling back to the raw value. */
-export function formatPhone(e164: string): string {
-  const parsed = parsePhoneNumberFromString(e164);
-  return parsed ? parsed.formatInternational() : e164;
+/**
+ * Format a handle for display. Email handles are shown as-is; phone numbers are
+ * formatted internationally, falling back to the raw value.
+ */
+export function formatPhone(handle: string): string {
+  if (handle.includes('@')) return handle;
+  const parsed = parsePhoneNumberFromString(handle);
+  return parsed ? parsed.formatInternational() : handle;
 }

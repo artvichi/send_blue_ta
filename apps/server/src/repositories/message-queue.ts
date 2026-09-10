@@ -48,7 +48,7 @@ export async function claimNextMessage(
       LIMIT 1
       FOR UPDATE SKIP LOCKED
     )
-    RETURNING id, "toE164", body, "dispatchToken", "leaseExpiresAt", "providerGuid";
+    RETURNING id, "toHandle", body, "dispatchToken", "leaseExpiresAt", "providerGuid";
   `);
 
   const row = rows[0];
@@ -120,4 +120,51 @@ export async function forceDispatch(id: string, db: Db = prisma) {
     await tx.message.update({ where: { id }, data: { forceDispatch: true } });
     return { ok: true } as const;
   });
+}
+
+export interface ActivityBucket {
+  hour: Date;
+  delivered: number;
+  failed: number;
+  inFlight: number;
+}
+
+/**
+ * What the queue pushed out, bucketed by hour.
+ *
+ * Bucketed on `dispatchedAt` rather than `createdAt`: the question this answers
+ * is "what did the system send, and how did it go", not "when did people type".
+ * Hours with no activity are filled in by generate_series so the chart keeps a
+ * continuous time axis instead of collapsing gaps.
+ */
+export async function activityByHour(hours: number, db: Db = prisma): Promise<ActivityBucket[]> {
+  const rows = await db.$queryRaw<
+    { hour: Date; delivered: bigint; failed: bigint; in_flight: bigint }[]
+  >(Prisma.sql`
+    WITH slots AS (
+      SELECT generate_series(
+        date_trunc('hour', now()) - make_interval(hours => ${hours - 1}),
+        date_trunc('hour', now()),
+        interval '1 hour'
+      ) AS hour
+    )
+    SELECT
+      s.hour,
+      COUNT(m.id) FILTER (WHERE m.status IN ('DELIVERED', 'RECEIVED')) AS delivered,
+      COUNT(m.id) FILTER (WHERE m.status = 'FAILED')                   AS failed,
+      COUNT(m.id) FILTER (WHERE m.status IN ('DISPATCHING','ACCEPTED','SENT')) AS in_flight
+    FROM slots s
+    LEFT JOIN "messages" m
+      ON m."dispatchedAt" >= s.hour
+     AND m."dispatchedAt" <  s.hour + interval '1 hour'
+    GROUP BY s.hour
+    ORDER BY s.hour ASC;
+  `);
+
+  return rows.map((r) => ({
+    hour: r.hour,
+    delivered: Number(r.delivered),
+    failed: Number(r.failed),
+    inFlight: Number(r.in_flight),
+  }));
 }

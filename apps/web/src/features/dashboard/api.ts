@@ -3,6 +3,14 @@ import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api-client';
 import { POLL, queryKeys } from '@/lib/query-keys';
 
+export function useActivity() {
+  return useQuery({
+    queryKey: queryKeys.activity,
+    queryFn: api.getActivity,
+    refetchInterval: POLL.stats,
+  });
+}
+
 export function useStats() {
   return useQuery({ queryKey: queryKeys.stats, queryFn: api.getStats, refetchInterval: POLL.stats });
 }

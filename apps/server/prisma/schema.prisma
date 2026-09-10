@@ -34,10 +34,11 @@ model Message {
   /// the same millisecond would tie, and a tie in a FIFO queue is a bug.
   queueSeq BigInt @default(autoincrement())
 
-  /// Always E.164. Normalized once at the HTTP edge so the queue, the gateway
-  /// and chat.db correlation all compare the same string.
-  toE164 String
-  body   String
+  /// The iMessage recipient: an E.164 phone number or an Apple ID email.
+  /// Normalized once at the HTTP edge so the queue, the gateway and chat.db
+  /// correlation all compare the same string.
+  toHandle String
+  body     String
 
   status MessageStatus @default(QUEUED)
 

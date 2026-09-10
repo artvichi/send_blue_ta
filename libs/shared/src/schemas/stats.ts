@@ -22,3 +22,18 @@ export const gatewayHealthSchema = z.object({
 });
 
 export type GatewayHealthDto = z.infer<typeof gatewayHealthSchema>;
+
+export const activityBucketSchema = z.object({
+  hour: z.string(),
+  delivered: z.number(),
+  failed: z.number(),
+  inFlight: z.number(),
+});
+
+export const activitySchema = z.object({
+  hours: z.number(),
+  buckets: z.array(activityBucketSchema),
+});
+
+export type ActivityBucketDto = z.infer<typeof activityBucketSchema>;
+export type ActivityDto = z.infer<typeof activitySchema>;

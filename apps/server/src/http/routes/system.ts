@@ -4,6 +4,7 @@ import { asyncRoute } from '../middleware/error-handler.js';
 import { prisma } from '../../db/prisma.js';
 import { env } from '../../config/env.js';
 import { getStats } from '../../services/messages.js';
+import { activityByHour } from '../../repositories/message-queue.js';
 
 export const systemRouter = Router();
 
@@ -11,6 +12,20 @@ systemRouter.get(
   '/stats',
   asyncRoute(async (_req, res) => {
     res.json(await getStats());
+  }),
+);
+
+/** Hourly outcomes for the dashboard chart. */
+systemRouter.get(
+  '/stats/activity',
+  asyncRoute(async (req, res) => {
+    const requested = Number(req.query.hours ?? 24);
+    const hours = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 168) : 24;
+    const buckets = await activityByHour(hours);
+    res.json({
+      hours,
+      buckets: buckets.map((b) => ({ ...b, hour: b.hour.toISOString() })),
+    });
   }),
 );
 

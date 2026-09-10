@@ -11,9 +11,9 @@ if (!connectionString) throw new Error('DATABASE_URL is required');
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 const SAMPLES = [
-  { toE164: '+15551234567', body: 'Hey! Just a reminder about our meeting tomorrow at 2 PM.' },
-  { toE164: '+15559876543', body: 'Your order has shipped and should arrive Thursday.' },
-  { toE164: '+12063456789', body: 'Following up on the notes from this morning -- all good?' },
+  { toHandle: '+15551234567', body: 'Hey! Just a reminder about our meeting tomorrow at 2 PM.' },
+  { toHandle: '+15559876543', body: 'Your order has shipped and should arrive Thursday.' },
+  { toHandle: '+12063456789', body: 'Following up on the notes from this morning -- all good?' },
 ];
 
 async function main() {

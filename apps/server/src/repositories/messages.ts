@@ -3,8 +3,8 @@ import { prisma, type Db } from '../db/prisma.js';
 import { canTransition } from '@sb/shared';
 import { recordEvent } from './message-status.js';
 
-export async function createMessage(toE164: string, body: string, db: Db = prisma) {
-  const message = await db.message.create({ data: { toE164, body } });
+export async function createMessage(toHandle: string, body: string, db: Db = prisma) {
+  const message = await db.message.create({ data: { toHandle, body } });
   await recordEvent(message.id, 'QUEUED', message.createdAt, null, db);
   return message;
 }

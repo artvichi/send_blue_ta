@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import { Check, CheckCheck } from 'lucide-react';
 import type { MessageStatus } from '@sb/shared';
 import { cn } from '@/lib/utils';
 
@@ -8,13 +10,33 @@ import { cn } from '@/lib/utils';
  * realistic end of the line, because RECEIVED only ever arrives when the
  * recipient has read receipts enabled.
  */
-const STYLES: Record<MessageStatus, { label: string; className: string }> = {
+interface BadgeStyle {
+  label: string;
+  className: string;
+  /** Replaces the default dot where the mark itself carries meaning. */
+  mark?: ReactNode;
+}
+
+/**
+ * DELIVERED and RECEIVED are both successes, so both stay green -- but they are
+ * different facts, and outline-vs-solid plus one-tick-vs-two distinguishes them
+ * without relying on a colour difference nobody would notice.
+ */
+const STYLES: Record<MessageStatus, BadgeStyle> = {
   QUEUED: { label: 'Queued', className: 'bg-sunk text-ink-mute border-rule' },
   DISPATCHING: { label: 'Dispatching', className: 'bg-brand-soft text-brand border-brand/25' },
   ACCEPTED: { label: 'Accepted', className: 'bg-brand-soft text-brand border-brand/25' },
   SENT: { label: 'Sent', className: 'bg-brand-soft text-brand border-brand/30' },
-  DELIVERED: { label: 'Delivered', className: 'bg-good-soft text-good border-good/25' },
-  RECEIVED: { label: 'Read', className: 'bg-good-soft text-good border-good/40' },
+  DELIVERED: {
+    label: 'Delivered',
+    className: 'bg-good-soft text-good border-good/30',
+    mark: <Check className="size-3" strokeWidth={3} />,
+  },
+  RECEIVED: {
+    label: 'Read',
+    className: 'border-transparent bg-good text-white',
+    mark: <CheckCheck className="size-3" strokeWidth={3} />,
+  },
   FAILED: { label: 'Failed', className: 'bg-bad-soft text-bad border-bad/25' },
   CANCELED: { label: 'Canceled', className: 'bg-sunk text-ink-mute border-rule line-through' },
 };
@@ -29,7 +51,9 @@ export function StatusBadge({ status, className }: { status: MessageStatus; clas
         className,
       )}
     >
-      <span className="size-1.5 rounded-full bg-current" aria-hidden />
+      <span aria-hidden className="flex items-center">
+        {style.mark ?? <span className="size-1.5 rounded-full bg-current" />}
+      </span>
       {style.label}
     </span>
   );

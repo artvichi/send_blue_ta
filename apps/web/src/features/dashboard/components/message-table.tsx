@@ -1,25 +1,15 @@
 import { Fragment, useState } from 'react';
-import { MESSAGE_STATUSES, type MessageStatus } from '@sb/shared';
 import { RotateCw, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/status-badge';
 import { EmptyState } from '@/components/empty-state';
-import { cn } from '@/lib/utils';
 import { formatCompactDateTime, formatPhone } from '@/lib/format';
 import { useMessages, useRetryMessage } from '../api';
+import type { StatusFilter } from './status-filter';
 import { MessageTimeline } from './message-timeline';
 
-const FILTERS: { label: string; value: MessageStatus | undefined }[] = [
-  { label: 'All', value: undefined },
-  ...MESSAGE_STATUSES.filter((s) => s !== 'DISPATCHING').map((s) => ({
-    label: s.charAt(0) + s.slice(1).toLowerCase(),
-    value: s,
-  })),
-];
-
-export function MessageTable() {
-  const [filter, setFilter] = useState<MessageStatus | undefined>(undefined);
+export function MessageTable({ filter }: { filter: StatusFilter }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const { data, isPending } = useMessages(filter);
   const retry = useRetryMessage();
@@ -28,24 +18,6 @@ export function MessageTable() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {FILTERS.map((option) => (
-          <button
-            key={option.label}
-            type="button"
-            onClick={() => setFilter(option.value)}
-            className={cn(
-              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-              filter === option.value
-                ? 'border-brand bg-brand-soft text-brand'
-                : 'border-rule text-ink-mute hover:text-ink',
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
       {isPending ? (
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => (

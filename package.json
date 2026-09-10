@@ -24,7 +24,7 @@
     "gateway:setup": "tsx apps/gateway/src/setup.ts",
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
-    "test:int": "nx run server:test:integration",
+    "test:int": "npm run db:migrate:test && nx run server:test:integration",
     "typecheck": "nx run-many -t typecheck",
     "verify": "nx run-many -t typecheck lint test"
   },

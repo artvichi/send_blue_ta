@@ -8,6 +8,7 @@ export const queryKeys = {
   messages: (status?: string) => ['messages', 'list', status ?? 'all'] as const,
   message: (id: string) => ['messages', 'detail', id] as const,
   stats: ['stats'] as const,
+  activity: ['stats', 'activity'] as const,
   settings: ['settings'] as const,
   gateway: ['gateway', 'health'] as const,
 };

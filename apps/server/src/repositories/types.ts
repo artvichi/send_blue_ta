@@ -7,7 +7,7 @@ import type { MessageStatus } from '../db/generated/client.js';
  */
 export const claimedRowSchema = z.object({
   id: z.string(),
-  toE164: z.string(),
+  toHandle: z.string(),
   body: z.string(),
   dispatchToken: z.string(),
   leaseExpiresAt: z.date(),

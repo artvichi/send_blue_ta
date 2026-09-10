@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { parsePhone } from '../phone.js';
+import { parseHandle } from '../handle.js';
 import { MAX_BODY_LENGTH, messageStatusSchema } from './common.js';
 
 /** Fed to zodResolver in the browser and to validation on the server, so the two cannot drift. */
 export const createMessageSchema = z.object({
   to: z
     .string()
-    .min(1, 'Enter a phone number')
-    .refine((v) => parsePhone(v).ok, 'That phone number is not valid'),
+    .min(1, 'Enter a phone number or email')
+    .refine((v) => parseHandle(v).ok, 'Enter a valid phone number or Apple ID email'),
   body: z
     .string()
     .trim()

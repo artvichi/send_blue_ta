@@ -26,7 +26,7 @@ export async function seedMessages(count: number, prefix = 'msg') {
   for (let i = 0; i < count; i++) {
     created.push(
       await db.message.create({
-        data: { toE164: `+1206345600${i}`, body: `${prefix} ${i}` },
+        data: { toHandle: `+1206345600${i}`, body: `${prefix} ${i}` },
       }),
     );
   }

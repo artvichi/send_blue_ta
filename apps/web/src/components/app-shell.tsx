@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GatewayIndicator } from '@/features/dashboard/components/gateway-indicator';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const NAV = [
   { to: '/', label: 'Schedule', end: true },
@@ -38,8 +39,9 @@ export function AppShell() {
             ))}
           </nav>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
             <GatewayIndicator />
+            <ThemeToggle />
           </div>
         </div>
       </header>

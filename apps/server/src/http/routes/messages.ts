@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   createMessageSchema,
   listMessagesQuerySchema,
-  parsePhone,
+  parseHandle,
   type ListMessagesQuery,
 } from '@sb/shared';
 import { asyncRoute } from '../middleware/error-handler.js';
@@ -29,10 +29,10 @@ messagesRouter.post(
   asyncRoute(async (req, res) => {
     const { to, body } = req.body as { to: string; body: string };
 
-    const phone = parsePhone(to);
-    if (!phone.ok) throw badRequest(phone.reason, [{ field: 'to', message: phone.reason }]);
+    const handle = parseHandle(to);
+    if (!handle.ok) throw badRequest(handle.reason, [{ field: 'to', message: handle.reason }]);
 
-    const message = await createMessage(phone.e164, body);
+    const message = await createMessage(handle.handle, body);
     logger.info({ messageId: message.id }, 'message scheduled');
 
     const detail = await getMessageDetail(message.id);

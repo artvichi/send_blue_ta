@@ -1,4 +1,5 @@
 import type {
+  ActivityDto,
   GatewayHealthDto,
   MessageDetailDto,
   MessageDto,
@@ -84,6 +85,8 @@ export const api = {
     request<MessageDetailDto>(`/api/messages/${id}/send-now`, { method: 'POST' }),
 
   getStats: () => request<StatsDto>('/api/stats'),
+
+  getActivity: () => request<ActivityDto>('/api/stats/activity?hours=24'),
 
   getSettings: () => request<SettingsResponse>('/api/settings'),
 

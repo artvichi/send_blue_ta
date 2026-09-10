@@ -85,13 +85,11 @@ export async function queryChatDb(sql: string): Promise<ChatDbRow[]> {
  * text narrows the match rather than gating it.
  */
 export async function findSentMessage(
-  toE164: string,
+  toHandle: string,
   body: string,
   sentAfter: Date,
 ): Promise<ChatDbRow | null> {
   const since = Math.floor(dateToAppleNs(sentAfter));
-  const digits = toE164.replace(/[^0-9]/g, '');
-  const tail = digits.slice(-10);
 
   const sql = `
     SELECT m.guid, m.text, h.id AS handle, m.is_from_me, m.is_sent,
@@ -100,8 +98,7 @@ export async function findSentMessage(
     LEFT JOIN handle h ON m.handle_id = h.ROWID
     WHERE m.is_from_me = 1
       AND m.date >= ${since}
-      AND REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(h.id,''), '+', ''), '-', ''), ' ', ''), '()', '')
-          LIKE ${sqlLiteral('%' + tail)}
+      AND ${handleMatchSql(toHandle)}
     ORDER BY m.date DESC
     LIMIT 10;
   `;
@@ -111,6 +108,24 @@ export async function findSentMessage(
 
   const exact = rows.find((r) => r.text !== null && r.text === body);
   return exact ?? rows[0] ?? null;
+}
+
+/**
+ * Match a handle as chat.db stores it.
+ *
+ * Email handles compare exactly (case-insensitively); phone numbers cannot,
+ * because Messages records them in whatever shape the send used -- +1 206...,
+ * (206) ..., 206-... -- so those are compared on their last ten digits after
+ * stripping punctuation.
+ */
+function handleMatchSql(toHandle: string): string {
+  if (toHandle.includes('@')) {
+    return `LOWER(COALESCE(h.id,'')) = ${sqlLiteral(toHandle.toLowerCase())}`;
+  }
+
+  const tail = toHandle.replace(/[^0-9]/g, '').slice(-10);
+  return `REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(h.id,''), '+', ''), '-', ''), ' ', ''), '()', '')
+          LIKE ${sqlLiteral('%' + tail)}`;
 }
 
 /** Current delivery state of one message, by GUID. */

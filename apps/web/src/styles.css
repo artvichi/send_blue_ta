@@ -39,33 +39,76 @@
   --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
 }
 
+
+
+/**
+ * Theme resolution has three states, not two.
+ *
+ *   no attribute       -- follow the operating system
+ *   [data-theme=dark]  -- explicit dark, even on a light OS
+ *   [data-theme=light] -- explicit light, even on a dark OS
+ *
+ * The tokens above are the light palette. These blocks redefine only the
+ * variables, so every component keeps styling through the same names.
+ */
 @media (prefers-color-scheme: dark) {
-  @theme {
-    --color-ground: oklch(17% 0.015 255);
-    --color-surface: oklch(21.5% 0.018 255);
-    --color-sunk: oklch(19% 0.016 255);
-    --color-ink: oklch(94% 0.008 250);
-    --color-ink-soft: oklch(80% 0.012 250);
-    --color-ink-mute: oklch(64% 0.014 250);
-    --color-rule: oklch(29% 0.018 255);
-    --color-rule-soft: oklch(25% 0.016 255);
-
-    --color-brand: oklch(64% 0.19 259);
-    --color-brand-deep: oklch(58% 0.2 271);
-    --color-brand-soft: oklch(28% 0.06 259);
-
-    --color-good: oklch(72% 0.17 149);
-    --color-good-soft: oklch(26% 0.06 149);
-    --color-warn: oklch(76% 0.16 68);
-    --color-warn-soft: oklch(28% 0.06 68);
-    --color-bad: oklch(68% 0.19 25);
-    --color-bad-soft: oklch(28% 0.07 25);
+  :root:not([data-theme='light']) {
+  --color-ground: oklch(17% 0.015 255);
+  --color-surface: oklch(21.5% 0.018 255);
+  --color-sunk: oklch(19% 0.016 255);
+  --color-ink: oklch(94% 0.008 250);
+  --color-ink-soft: oklch(80% 0.012 250);
+  --color-ink-mute: oklch(64% 0.014 250);
+  --color-rule: oklch(29% 0.018 255);
+  --color-rule-soft: oklch(25% 0.016 255);
+  --color-brand: oklch(64% 0.19 259);
+  --color-brand-deep: oklch(58% 0.2 271);
+  --color-brand-soft: oklch(28% 0.06 259);
+  --color-good: oklch(72% 0.17 149);
+  --color-good-soft: oklch(26% 0.06 149);
+  --color-warn: oklch(76% 0.16 68);
+  --color-warn-soft: oklch(28% 0.06 68);
+  --color-bad: oklch(68% 0.19 25);
+  --color-bad-soft: oklch(28% 0.07 25);
   }
 }
+
+:root[data-theme='dark'] {
+  --color-ground: oklch(17% 0.015 255);
+  --color-surface: oklch(21.5% 0.018 255);
+  --color-sunk: oklch(19% 0.016 255);
+  --color-ink: oklch(94% 0.008 250);
+  --color-ink-soft: oklch(80% 0.012 250);
+  --color-ink-mute: oklch(64% 0.014 250);
+  --color-rule: oklch(29% 0.018 255);
+  --color-rule-soft: oklch(25% 0.016 255);
+  --color-brand: oklch(64% 0.19 259);
+  --color-brand-deep: oklch(58% 0.2 271);
+  --color-brand-soft: oklch(28% 0.06 259);
+  --color-good: oklch(72% 0.17 149);
+  --color-good-soft: oklch(26% 0.06 149);
+  --color-warn: oklch(76% 0.16 68);
+  --color-warn-soft: oklch(28% 0.06 68);
+  --color-bad: oklch(68% 0.19 25);
+  --color-bad-soft: oklch(28% 0.07 25);
+}
+
+/** Lets components opt into dark-only styling when a token is not enough. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @layer base {
   * {
     border-color: var(--color-rule);
+  }
+
+  html {
+    color-scheme: light;
+  }
+  :root:not([data-theme='light']) {
+    color-scheme: light dark;
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
   }
 
   body {

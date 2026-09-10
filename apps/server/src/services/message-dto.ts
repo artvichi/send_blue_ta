@@ -32,7 +32,7 @@ export function toDto(message: Message, projection: QueueProjection): MessageDto
   return {
     id: message.id,
     queueSeq: message.queueSeq.toString(),
-    to: message.toE164,
+    to: message.toHandle,
     body: message.body,
     status: message.status,
     attempts: message.attempts,

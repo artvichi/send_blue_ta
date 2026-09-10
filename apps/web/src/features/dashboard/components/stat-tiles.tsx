@@ -75,7 +75,17 @@ export function StatTiles() {
         icon={<AlertTriangle />}
         label="Failed"
         value={data.failed}
-        hint={data.canceled ? `${data.canceled} cancelled` : 'None'}
+        // The hint described cancellations, so a tile reading "4 / None" was
+        // possible. Say something true about the number above it.
+        hint={
+          data.failed === 0
+            ? data.canceled
+              ? `${data.canceled} cancelled`
+              : 'None'
+            : data.canceled
+              ? `plus ${data.canceled} cancelled`
+              : 'Retry from the table'
+        }
         tone={data.failed > 0 ? 'bad' : undefined}
       />
     </div>

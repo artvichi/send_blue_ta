@@ -64,7 +64,7 @@ gatewayRouter.get(
           const lease: LeaseDto = {
             messageId: claimed.id,
             dispatchToken: claimed.dispatchToken,
-            to: claimed.toE164,
+            to: claimed.toHandle,
             body: claimed.body,
             leaseExpiresAt: claimed.leaseExpiresAt.toISOString(),
             // Non-null means a previous attempt already sent this message and
