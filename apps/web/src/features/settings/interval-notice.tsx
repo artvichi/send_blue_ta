@@ -1,4 +1,5 @@
 import { Timer } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { formatInterval } from '@/lib/format';
 import { useSettings } from './api';
 
@@ -16,7 +17,11 @@ export function IntervalNotice() {
       {data.paused ? (
         <span>
           The queue is <strong className="font-medium text-warn">paused</strong>. Nothing will be
-          sent until it is resumed from the dashboard.
+          sent until it is resumed in{' '}
+          <Link to="/settings" className="font-medium text-warn underline underline-offset-2">
+            Settings
+          </Link>
+          .
         </span>
       ) : (
         <span>
@@ -24,7 +29,11 @@ export function IntervalNotice() {
           <strong className="font-medium text-ink">
             {formatInterval(data.sendIntervalSeconds)}
           </strong>
-          . Change the rate on the dashboard.
+          .{' '}
+          <Link to="/settings" className="underline underline-offset-2 hover:text-ink">
+            Change the rate
+          </Link>
+          .
         </span>
       )}
     </p>

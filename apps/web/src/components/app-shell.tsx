@@ -6,8 +6,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { PermissionBanner } from '@/components/permission-banner';
 
 const NAV = [
-  { to: '/', label: 'Schedule', end: true },
-  { to: '/dashboard', label: 'Dashboard', end: false },
+  { to: '/', label: 'Dashboard', end: true },
+  { to: '/schedule', label: 'Schedule', end: false },
   { to: '/settings', label: 'Settings', end: false },
 ];
 

@@ -31,9 +31,11 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<AppShell />}>
-            <Route index element={<SchedulerPage />} />
-            <Route path="dashboard" element={<DashboardPage />} />
+            <Route index element={<DashboardPage />} />
+            <Route path="schedule" element={<SchedulerPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            {/* The dashboard used to live here; keep old links working. */}
+            <Route path="dashboard" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

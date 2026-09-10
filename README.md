@@ -43,8 +43,12 @@ npm run gateway:mock      # simulated sending, no macOS permissions needed
 Open **http://localhost:4320** — that is the UI. (`:4310` is the API; it serves
 JSON only.) Nothing drains without a gateway running, so start it too.
 
-To watch the queue work, go to **Dashboard → Send rate → 10s**, then schedule a
-few messages on the Schedule page.
+The **Dashboard** is the home page: stat tiles, an hourly activity chart, and
+every message with its status and attempt count. **Schedule** is the compose
+screen, and **Settings** holds the send rate and retry budget.
+
+To watch the queue work, set **Settings → Send rate → 10s**, schedule a few
+messages, and watch them drain on the Dashboard.
 
 ### What each piece is
 
