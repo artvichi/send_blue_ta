@@ -98,6 +98,7 @@ export function createAppleScriptDriver(): MessageDriver {
     watch(providerGuid: string, onStatus: (event: StatusEvent) => void): Unsubscribe {
       const { CHATDB_POLL_MS, CHATDB_WATCH_TIMEOUT_MS } = config();
       let cancelled = false;
+      let reportedSent = false;
       let reportedDelivered = false;
       const startedAt = Date.now();
 
@@ -115,6 +116,12 @@ export function createAppleScriptDriver(): MessageDriver {
                 error: `Messages reported error code ${row.error}`,
               });
               return;
+            }
+
+            // Only once Messages says it actually left the machine.
+            if (!reportedSent && row.is_sent === 1) {
+              reportedSent = true;
+              onStatus({ status: 'SENT', occurredAt: appleTimeToDate(row.date) ?? new Date() });
             }
 
             if (!reportedDelivered && (row.is_delivered === 1 || row.date_delivered)) {

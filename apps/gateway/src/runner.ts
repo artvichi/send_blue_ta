@@ -128,10 +128,15 @@ export class GatewayRunner {
     try {
       const result = await this.driver.send(lease.to, lease.body);
 
+      // The GUID travels with ACCEPTED rather than SENT: it is the double-send
+      // guard and must be persisted the instant the message exists, but SENT
+      // should mean Messages actually sent it. The watcher reports that when
+      // chat.db sets is_sent, so a message that Messages creates and then fails
+      // to deliver is never recorded as having gone out.
       await reportStatus({
         messageId,
         dispatchToken,
-        status: 'SENT',
+        status: 'ACCEPTED',
         occurredAt: result.sentAt,
         providerGuid: result.providerGuid,
       });

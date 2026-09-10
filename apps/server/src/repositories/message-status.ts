@@ -26,6 +26,20 @@ export async function applyStatusReport(
       return { outcome: 'ignored', reason: 'stale-token', status: message.status } as const;
     }
 
+    /**
+     * The GUID is a fact about the attempt, not a status, so it is persisted
+     * even when the transition itself is rejected. Without this a gateway that
+     * re-reports a status it already sent would silently fail to record the
+     * double-send guard.
+     */
+    if (input.providerGuid && !message.providerGuid) {
+      await tx.message.update({
+        where: { id: input.messageId },
+        data: { providerGuid: input.providerGuid },
+      });
+      message.providerGuid = input.providerGuid;
+    }
+
     if (!canTransition(message.status, input.status)) {
       return { outcome: 'ignored', reason: 'no-transition', status: message.status } as const;
     }

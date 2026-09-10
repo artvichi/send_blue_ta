@@ -194,3 +194,41 @@ describe('retryMessage', () => {
     expect(reclaimed?.id).toBe(claimed.id);
   });
 });
+
+describe('the provider GUID is not gated by status rules', () => {
+  it('records the GUID even when the transition itself is rejected', async () => {
+    const claimed = await claimOne();
+    const base = { messageId: claimed.id, dispatchToken: claimed.dispatchToken };
+
+    await applyStatusReport({ ...base, status: 'ACCEPTED', occurredAt: new Date() }, db);
+
+    // The gateway re-reports ACCEPTED once it has correlated the chat.db row.
+    // The status cannot advance, but the GUID must still land -- it is the
+    // double-send guard, and losing it risks texting someone twice.
+    const repeat = await applyStatusReport(
+      { ...base, status: 'ACCEPTED', occurredAt: new Date(), providerGuid: 'guid-late' },
+      db,
+    );
+
+    expect(repeat.outcome).toBe('ignored');
+    const row = await db.message.findUniqueOrThrow({ where: { id: claimed.id } });
+    expect(row.providerGuid).toBe('guid-late');
+  });
+
+  it('still refuses to overwrite a GUID that is already set', async () => {
+    const claimed = await claimOne();
+    const base = { messageId: claimed.id, dispatchToken: claimed.dispatchToken };
+
+    await applyStatusReport(
+      { ...base, status: 'ACCEPTED', occurredAt: new Date(), providerGuid: 'guid-first' },
+      db,
+    );
+    await applyStatusReport(
+      { ...base, status: 'SENT', occurredAt: new Date(), providerGuid: 'guid-second' },
+      db,
+    );
+
+    const row = await db.message.findUniqueOrThrow({ where: { id: claimed.id } });
+    expect(row.providerGuid).toBe('guid-first');
+  });
+});
