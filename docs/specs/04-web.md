@@ -31,6 +31,14 @@ Poll rates are matched to what a person is actually watching: the queue every 2s
 stats every 3s, gateway health every 5s. Settings do not poll at all — they change
 only when someone changes them, so invalidation covers it.
 
+`refetchIntervalInBackground` is enabled, overriding a React Query default that
+is right for most apps and wrong for this one. By default polling pauses for a
+hidden tab; a queue dashboard, though, is something you leave open on a second
+monitor and glance at. Without the override it silently freezes the moment it
+loses focus and only catches up when clicked, which reads as broken — and it did:
+this was caught by watching the drain in an unfocused window. The cost is a few
+small JSON requests.
+
 ## Validation
 
 `react-hook-form` with `zodResolver` against the **same schema the server uses**.

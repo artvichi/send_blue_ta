@@ -10,6 +10,9 @@ React 19 + Vite + Tailwind v4 + shadcn-style primitives.
   in a `useQuery` call — invalidation silently stops matching.
 - **There is no WebSocket or SSE.** Server state is polled. If you add push,
   change it inside the query layer only.
+- **Keep `refetchIntervalInBackground: true`.** React Query pauses polling for a
+  hidden tab by default; this dashboard is meant to be left open on a second
+  monitor, and without the override it silently freezes when unfocused.
 - **No date picker.** The mockup has none, and send times are derived from queue
   position. `IntervalNotice` explains this to the user; keep that explanation.
 - **Status is never colour alone.** Dot + label + border.

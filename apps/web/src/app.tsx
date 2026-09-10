@@ -13,6 +13,13 @@ const queryClient = new QueryClient({
       staleTime: 0,
       retry: 1,
       refetchOnWindowFocus: true,
+
+      // React Query pauses polling for a hidden tab by default, which is right
+      // for most apps and wrong for this one: a queue dashboard is something you
+      // leave open on a second monitor and glance at. Without this it silently
+      // freezes the moment it loses focus and only catches up when clicked --
+      // which reads as broken. The cost is a few small JSON requests.
+      refetchIntervalInBackground: true,
     },
   },
 });
