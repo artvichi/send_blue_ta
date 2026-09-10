@@ -22,6 +22,8 @@ export default defineConfig({
           name: 'integration',
           environment: 'node',
           include: ['test/**/*.int.spec.ts'],
+          // The app under test logs at info; silence it so failures stand out.
+          env: { LOG_LEVEL: 'silent' },
           fileParallelism: false,
           hookTimeout: 30_000,
           testTimeout: 30_000,

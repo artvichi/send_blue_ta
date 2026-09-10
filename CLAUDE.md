@@ -67,7 +67,9 @@ Nx targets: `nx run <project>:<target>`. Projects are `web`, `server`, `gateway`
 ## Testing
 
 - `apps/server/src/**/*.spec.ts` — unit, no database
-- `apps/server/test/**/*.int.spec.ts` — integration, real Postgres, own database
+- `apps/server/test/**/*.int.spec.ts` — integration, real Postgres, own database.
+  `claim`/`status` cover the repositories; `http` covers routes end to end via
+  supertest (validation, auth, status-code mapping).
 - Integration tests are where concurrency claims are actually proven. If you
   change the claim query, the tests in `test/claim.int.spec.ts` must still pass.
 

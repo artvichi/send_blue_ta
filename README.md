@@ -227,11 +227,16 @@ npm test        # unit -- pure logic, no database, milliseconds
 npm run test:int    # integration -- real Postgres, own database
 ```
 
-Unit tests cover the status state machine, ETA projection, the rate gate and
-phone normalization. Integration tests cover what only a real database can prove:
-that five concurrent claims return five *different* messages, that the reaper
-reclaims abandoned leases, that a stale dispatch token is rejected, and that the
-GUID survives a reap.
+Unit tests cover the status state machine, ETA projection, the rate gate, phone
+normalization and the Apple epoch conversion.
+
+Integration tests run against a real Postgres, in two layers. The repository
+suites prove what only a database can: that five concurrent claims return five
+*different* messages, that the reaper reclaims abandoned leases, that a stale
+dispatch token is rejected, and that the GUID survives a reap. The HTTP suite
+proves a caller actually experiences all of that — E.164 normalization through
+the route, the validation error shape, gateway auth, the rate gate closing after
+one lease, and the conflict codes on cancel and retry.
 
 CI runs both on every pull request, against a Postgres service container.
 
