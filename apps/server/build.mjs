@@ -1,6 +1,10 @@
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 
+// Resolve every path against this file, not the caller's cwd: Nx runs it from
+// apps/server while the Docker build runs it from the repo root.
+const here = (p) => fileURLToPath(new URL(p, import.meta.url));
+
 /**
  * Bundle rather than `tsc --outDir`.
  *
@@ -14,8 +18,8 @@ import { fileURLToPath } from 'node:url';
  * query engine and must not be bundled.
  */
 await build({
-  entryPoints: ['src/main.ts'],
-  outfile: 'dist/main.js',
+  entryPoints: [here('src/main.ts')],
+  outfile: here('dist/main.js'),
   bundle: true,
   platform: 'node',
   target: 'node22',
@@ -23,10 +27,12 @@ await build({
   sourcemap: true,
   packages: 'external',
   alias: {
-    '@sb/shared': fileURLToPath(new URL('../../libs/shared/src/index.ts', import.meta.url)),
+    '@sb/shared': here('../../libs/shared/src/index.ts'),
   },
   // The Prisma client is generated into src/, so it would otherwise be inlined
   // along with the rest of the source tree.
   external: ['./src/db/generated/*', '@prisma/*'],
+  // Keep the generated-client import relative to dist/, wherever we were invoked from.
+  absWorkingDir: here('.'),
   logLevel: 'info',
 });

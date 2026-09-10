@@ -27,13 +27,18 @@ RUN node apps/server/build.mjs
 
 # ---- production dependencies ------------------------------------------------
 # A separate install so the runtime image carries no build tooling.
+#
+# Scoped to the server workspace: a bare `npm ci` installs every workspace's
+# dependencies into the shared root node_modules, which put the web app's React
+# and icon packages into the API image (~130MB of them).
 FROM base AS prod-deps
 COPY package.json package-lock.json .npmrc ./
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
 COPY apps/gateway/package.json apps/gateway/
 COPY libs/shared/package.json libs/shared/
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --workspace=@sb/server --include-workspace-root
 
 # ---- runtime ----------------------------------------------------------------
 FROM node:22-alpine AS runner

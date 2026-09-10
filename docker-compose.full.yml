@@ -5,6 +5,26 @@
 #   docker compose -f docker-compose.yml -f docker-compose.full.yml up --build
 
 services:
+  # Migrations run once, as their own job, rather than from every app replica on
+  # boot -- that keeps the Prisma CLI (and Studio, and its dev tooling) out of
+  # the runtime image entirely, and means N replicas do not race on startup.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      target: build
+    working_dir: /repo
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sbta}:${POSTGRES_PASSWORD:-sbta}@postgres:5432/${POSTGRES_DB:-sbta}?schema=public
+    command: >-
+      npx prisma migrate deploy
+      --schema apps/server/prisma/schema.prisma
+      --config apps/server/prisma.config.ts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   server:
     build:
       context: .
@@ -20,8 +40,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Migrations run at start so a fresh volume is usable without a manual step.
-    command: sh -c "npx prisma migrate deploy && node dist/main.js"
+      migrate:
+        condition: service_completed_successfully
 
   web:
     build:
