@@ -11,11 +11,8 @@ const execFileAsync = promisify(execFile);
 export const CHAT_DB_PATH = join(homedir(), 'Library', 'Messages', 'chat.db');
 
 /**
- * Apple stores these timestamps as nanoseconds since 2001-01-01 UTC, not as a
- * Unix epoch. 978307200 is the offset between the two.
- *
- * Very old rows use seconds rather than nanoseconds, so the magnitude decides
- * which unit is in play.
+ * Apple timestamps are nanoseconds since 2001-01-01 UTC, not Unix. Very old rows
+ * store seconds, so magnitude decides the unit.
  */
 const APPLE_EPOCH_OFFSET_SECONDS = 978_307_200;
 
@@ -51,12 +48,9 @@ export class ChatDbAccessError extends Error {
 }
 
 /**
- * Read chat.db through a snapshot rather than in place.
- *
- * Messages.app keeps the database in WAL mode and holds it open. Reading the
- * main file alone can miss recent writes that are still in the -wal segment, so
- * all three files are copied together and the copy is opened read-only. This
- * also guarantees we can never interfere with Messages.app itself.
+ * Read through a snapshot. Messages.app holds the database open in WAL mode, so
+ * reading the main file alone can miss writes still in -wal; all three files are
+ * copied and the copy opened read-only.
  */
 export async function queryChatDb(sql: string): Promise<ChatDbRow[]> {
   if (!existsSync(CHAT_DB_PATH)) {
@@ -70,8 +64,7 @@ export async function queryChatDb(sql: string): Promise<ChatDbRow[]> {
 
   try {
     await copyFile(CHAT_DB_PATH, snapshot);
-    // The -wal and -shm siblings may legitimately be absent when Messages has
-    // checkpointed, so their absence is not an error.
+    // Absent siblings are fine -- Messages may have checkpointed.
     for (const suffix of ['-wal', '-shm']) {
       const source = `${CHAT_DB_PATH}${suffix}`;
       if (existsSync(source)) await copyFile(source, `${snapshot}${suffix}`);
@@ -103,13 +96,10 @@ export function sqlLiteral(value: string): string {
 }
 
 /**
- * Find the message we just sent.
- *
- * AppleScript reports nothing about what it sent, so the row has to be located
- * by correlation: an outgoing message, to this handle, created no earlier than
- * the moment just before the send. Text is compared when chat.db has it -- on
- * recent macOS `text` is often NULL because the body lives in `attributedBody`
- * as a binary plist -- so it narrows the match rather than gating it.
+ * AppleScript reports nothing about what it sent, so the row is located by
+ * correlation: outgoing, to this handle, no earlier than just before the send.
+ * On recent macOS `text` is often NULL (the body lives in `attributedBody`), so
+ * text narrows the match rather than gating it.
  */
 export async function findSentMessage(
   toE164: string,

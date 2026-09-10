@@ -1,10 +1,7 @@
 /**
- * Every React Query key in one place.
- *
- * Centralizing them keeps invalidation honest -- a mutation invalidates a named
- * key rather than an ad-hoc array literal that quietly stops matching. It is
- * also the seam that would confine a future swap from polling to SSE to this
- * layer alone.
+ * Every key in one place: a mutation invalidates a named key rather than an
+ * ad-hoc literal that quietly stops matching. Also the seam that would confine a
+ * future swap to SSE.
  */
 export const queryKeys = {
   queue: ['messages', 'queue'] as const,
@@ -15,13 +12,7 @@ export const queryKeys = {
   gateway: ['gateway', 'health'] as const,
 };
 
-/**
- * Poll intervals.
- *
- * The queue is the live surface a person actually watches drain, so it refreshes
- * briskly. Settings change only when someone changes them, so it does not poll
- * at all and relies on invalidation instead.
- */
+/** The queue is what people watch drain; settings change only on demand. */
 export const POLL = {
   queue: 2000,
   stats: 3000,

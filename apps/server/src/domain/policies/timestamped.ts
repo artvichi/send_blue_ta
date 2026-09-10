@@ -3,14 +3,9 @@ import { projectEta, type EtaInput } from '@sb/shared';
 import type { SchedulingPolicy } from './types.js';
 
 /**
- * Send at or after a caller-supplied time, still rate limited, FIFO breaking ties.
- *
- * This is not wired into the product -- the mockup has no date picker and the
- * brief asks for FIFO. It exists because it is the extension most likely to be
- * asked about, and because demonstrating that the seam works costs about twenty
- * lines once `scheduledAt` exists on the model.
- *
- * Selecting it is a `Setting.policy` change, not a refactor.
+ * Send at or after a caller-supplied time, still rate limited, FIFO breaking
+ * ties. Not wired into the product; it exists to prove the seam works, and
+ * selecting it is a `Setting.policy` change rather than a refactor.
  */
 export const timestampedPolicy: SchedulingPolicy = {
   name: 'TIMESTAMPED',
@@ -25,8 +20,7 @@ export const timestampedPolicy: SchedulingPolicy = {
   },
 
   projectEta(position: number, input: EtaInput) {
-    // Rate limiting still applies, so a message cannot jump its slot merely by
-    // asking for an earlier time.
+    // Rate limiting still applies: an earlier request does not jump the slot.
     return projectEta(position, input);
   },
 };

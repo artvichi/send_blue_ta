@@ -6,14 +6,9 @@ import { CHAT_DB_PATH, queryChatDb } from './chatdb.js';
 const execFileAsync = promisify(execFile);
 
 /**
- * macOS permission handling.
- *
- * Both permissions the gateway needs are granted to the *application hosting the
- * terminal*, not to node, and neither can be granted programmatically -- TCC
- * deliberately requires a human to click. What can be automated is everything
- * around that click: naming the exact app to add, opening the exact settings
- * pane, and detecting the moment access appears so nobody has to guess whether
- * it worked.
+ * Neither permission can be granted programmatically -- TCC requires a human
+ * click. What is automated is everything around it: naming the exact app,
+ * opening the exact pane, and detecting the moment access appears.
  */
 
 export type Permission = 'full-disk-access' | 'automation';
@@ -26,12 +21,9 @@ export interface HostApp {
 }
 
 /**
- * Work out which application owns this terminal session.
- *
- * TCC attributes a child process's access to the "responsible" application, so
- * adding `node` to Full Disk Access does nothing -- the user has to add Terminal,
- * iTerm, VS Code, or whatever is actually hosting the shell. Telling them the
- * wrong name is the single most common way this setup goes wrong.
+ * TCC attributes a child process's access to the *responsible* application, so
+ * adding `node` grants nothing -- the user must add whatever hosts the shell.
+ * Naming the wrong app is the most common way this setup silently fails.
  */
 export function detectHostApp(): HostApp {
   const bundleId = process.env.__CFBundleIdentifier ?? null;
@@ -77,7 +69,7 @@ export function detectHostApp(): HostApp {
   return { name: 'your terminal application', bundleId: null, appPath: null };
 }
 
-/** Whether chat.db can actually be read. The only honest test is to read it. */
+/** The only honest test is to read it. */
 export async function hasFullDiskAccess(): Promise<boolean> {
   if (!existsSync(CHAT_DB_PATH)) return false;
   try {
@@ -88,13 +80,7 @@ export async function hasFullDiskAccess(): Promise<boolean> {
   }
 }
 
-/**
- * Whether AppleScript may drive Messages.app.
- *
- * The first attempt triggers the system's own consent dialog, which is the
- * happy path -- the user clicks Allow and never has to open Settings at all. It
- * only needs the manual route if they previously clicked Don't Allow.
- */
+/** The first attempt triggers the system consent dialog -- the happy path. */
 export async function hasAutomationAccess(): Promise<boolean> {
   try {
     await execFileAsync(
@@ -141,12 +127,8 @@ export interface WaitResult {
 }
 
 /**
- * Poll until the permission appears.
- *
- * A granted permission sometimes reaches an already-running process and
- * sometimes does not, depending on when TCC last cached the decision. Polling
- * settles that question by observation rather than by asking the user to guess
- * whether a restart is needed.
+ * A grant sometimes reaches an already-running process and sometimes does not,
+ * depending on TCC's cache. Polling settles it by observation.
  */
 export async function waitForPermission(
   check: () => Promise<boolean>,

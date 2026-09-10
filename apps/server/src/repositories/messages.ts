@@ -5,10 +5,7 @@ import { canTransition, isTerminal } from '@sb/shared';
 import type { SchedulingPolicy } from '../domain/policies/index.js';
 import { claimedRowSchema, type ClaimedRow } from './settings.js';
 
-/**
- * Column names are Prisma's defaults (camelCase), so raw SQL quotes them. The
- * enum is a native Postgres type, so comparisons are cast explicitly.
- */
+/** Columns are Prisma's camelCase defaults; the enum is a native Postgres type. */
 const STATUS = (s: MessageStatus) => Prisma.sql`${s}::"MessageStatus"`;
 
 // ---------------------------------------------------------------------------
@@ -16,22 +13,14 @@ const STATUS = (s: MessageStatus) => Prisma.sql`${s}::"MessageStatus"`;
 // ---------------------------------------------------------------------------
 
 /**
- * Atomically take the next eligible message out of the queue and lease it.
+ * Atomically take the next eligible message and lease it.
  *
- * This is the one place the codebase drops out of Prisma's query API, because
- * Prisma cannot express FOR UPDATE SKIP LOCKED and that clause is the whole
- * concurrency story:
- *
- *   - SELECT ... FOR UPDATE locks the candidate row.
- *   - SKIP LOCKED makes a concurrent claim step over a locked row rather than
- *     block on it, so N server instances each claim a *different* message
- *     instead of serializing behind one another.
- *
- * Together they make the claim safe under any number of concurrent tickers
- * without leader election, an advisory lock, or a coordination service.
- *
- * The returned row is parsed by Zod rather than cast, so a schema change that
- * breaks this query fails here rather than somewhere downstream.
+ * The one place we leave Prisma's query API, because it cannot express
+ * FOR UPDATE SKIP LOCKED -- and that clause is the whole concurrency story:
+ * SKIP LOCKED makes a concurrent claimer step over a locked row instead of
+ * blocking, so N instances each claim a *different* message with no leader
+ * election. The result is Zod-parsed, not cast, so a schema change fails here
+ * rather than downstream.
  */
 export async function claimNextMessage(
   policy: SchedulingPolicy,
@@ -71,12 +60,8 @@ export async function claimNextMessage(
 }
 
 /**
- * Return leases that outlived their deadline to the queue.
- *
- * This is where delivery reliability actually lives. A gateway that crashes
- * between claiming and reporting, a network partition, a process killed
- * mid-dispatch -- all of them resolve here, in the database that owns the
- * truth, rather than depending on a transport-level acknowledgement.
+ * Return expired leases to the queue. This -- not the transport -- is where
+ * delivery reliability lives: gateway crash, partition, death mid-dispatch.
  */
 export async function reapExpiredLeases(now: Date, db: Db = prisma): Promise<number> {
   const expired = await db.message.findMany({
@@ -117,18 +102,11 @@ export type ApplyStatusResult =
   | { outcome: 'ignored'; reason: 'stale-token' | 'not-found' | 'no-transition'; status?: MessageStatus };
 
 /**
- * Apply a status report from the gateway.
- *
- * Three independent guards, because reports arrive duplicated, out of order and
- * occasionally from an attempt that no longer exists:
- *
- *   1. The dispatch token must match the *current* attempt. A report from an
- *      attempt the reaper already reclaimed is discarded rather than applied to
- *      whichever attempt holds the message now.
- *   2. The transition must advance the progress rank, so a SENT that overtakes
- *      the DELIVERED behind it cannot walk the status backwards.
- *   3. The event log has a unique constraint on (messageId, status), so a
- *      redelivered report cannot duplicate a timeline entry.
+ * Apply a gateway status report. Three guards, because reports arrive
+ * duplicated, out of order, and sometimes from an attempt that no longer exists:
+ * the dispatch token must match the current attempt; the transition must
+ * advance the rank; and the event log's unique (messageId, status) makes a
+ * replay collide instead of duplicating.
  */
 export async function applyStatusReport(
   input: ApplyStatusInput,
@@ -155,13 +133,11 @@ export async function applyStatusReport(
     const stampField = TIMESTAMP_FIELD[input.status];
     if (stampField) data[stampField] = input.occurredAt;
 
-    // The GUID is written once and never overwritten: it is the double-send
-    // guard, and a later report must not be able to clear or replace it.
+    // Written once, never overwritten: this is the double-send guard.
     if (input.providerGuid && !message.providerGuid) data.providerGuid = input.providerGuid;
 
     if (input.status === 'FAILED') data.lastError = input.error ?? 'Unknown gateway error';
 
-    // A message that reached a terminal state is no longer leased.
     if (isTerminal(input.status)) {
       data.leaseExpiresAt = null;
     }
@@ -179,13 +155,7 @@ export async function applyStatusReport(
   });
 }
 
-/**
- * Append to the audit log, ignoring a collision.
- *
- * The unique constraint on (messageId, status) is what makes replay harmless:
- * a duplicated report collides and is dropped instead of adding a second
- * identical entry to the timeline.
- */
+/** Append to the audit log; a duplicate report collides and is dropped. */
 export async function recordEvent(
   messageId: string,
   status: MessageStatus,
@@ -209,7 +179,7 @@ export async function createMessage(toE164: string, body: string, db: Db = prism
   return message;
 }
 
-/** Ordered queue contents, used to derive positions and projected send times. */
+/** Ordered queue contents, for deriving positions and ETAs. */
 export async function listQueued(policy: SchedulingPolicy, db: Db = prisma) {
   return db.message.findMany({
     where: { status: 'QUEUED' },
@@ -249,12 +219,9 @@ export async function cancelMessage(id: string, db: Db = prisma) {
 }
 
 /**
- * Requeue a failed message.
- *
- * Modelled as its own operation rather than as a status transition, because
- * returning to QUEUED is not something a gateway report should ever be able to
- * cause. The previous attempt's token and GUID are cleared so the new attempt
- * starts clean -- and so the double-send guard does not immediately veto it.
+ * Requeue a failed message. Its own operation rather than a transition, so no
+ * gateway report can return a message to QUEUED. The previous token and GUID are
+ * cleared so the double-send guard does not immediately veto the new attempt.
  */
 export async function retryMessage(id: string, db: Db = prisma) {
   return db.$transaction(async (tx) => {
@@ -288,7 +255,7 @@ export async function findMessage(id: string, db: Db = prisma) {
   });
 }
 
-/** Whether an operator override is waiting, which bypasses the rate gate once. */
+/** Whether an operator override is waiting; it bypasses the rate gate once. */
 export async function hasForcedMessage(db: Db = prisma): Promise<boolean> {
   const count = await db.message.count({ where: { status: 'QUEUED', forceDispatch: true } });
   return count > 0;

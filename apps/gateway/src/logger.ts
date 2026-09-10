@@ -3,11 +3,8 @@ import { config } from './config.js';
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 } as const;
 
 /**
- * A deliberately tiny logger. The gateway is a single-purpose long-running
- * script; a structured logging framework would be more ceremony than it earns.
- *
- * Message bodies are never logged -- they are personal data, and the whole
- * point of this process is that it handles real texts to real people.
+ * Deliberately tiny -- a logging framework would be more ceremony than this
+ * single-purpose script earns. Message bodies are never logged: they are PII.
  */
 function log(level: keyof typeof LEVELS, msg: string, fields?: Record<string, unknown>): void {
   if (LEVELS[level] < LEVELS[config().LOG_LEVEL]) return;

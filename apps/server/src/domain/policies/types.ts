@@ -2,16 +2,12 @@ import type { Prisma } from '../../db/generated/client.js';
 import type { EtaInput } from '@sb/shared';
 
 /**
- * A scheduling policy decides *which* message leaves the queue next.
+ * Decides *which* message leaves next -- never *whether* now is allowed, which
+ * is the rate limiter's job. Conflating the two is what makes schedulers hard to
+ * change.
  *
- * It deliberately does not decide *whether* now is an allowed moment to send --
- * that is the rate limiter's job. Keeping the two apart is what lets the drain
- * rate change without touching ordering, and ordering change without touching
- * the rate limiter. Conflating them is what makes schedulers hard to modify.
- *
- * A policy contributes two SQL fragments to one shared claim query rather than
- * owning a query of its own, so every policy inherits the FOR UPDATE SKIP
- * LOCKED concurrency guarantee for free.
+ * A policy contributes SQL fragments to one shared claim query rather than
+ * owning a query, so every policy inherits SKIP LOCKED for free.
  */
 export interface SchedulingPolicy {
   readonly name: string;

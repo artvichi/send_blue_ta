@@ -80,9 +80,25 @@ model Message {
 
   events MessageEvent[]
 
-  /// Ordered to serve the FIFO claim and both future policies from one index.
-  @@index([status, forceDispatch, scheduledAt, priority, queueSeq])
+  /// The FIFO claim, in exactly its sort order. Without the matching directions
+  /// Postgres sorts every queued row to pick one.
+  @@index([status, forceDispatch(sort: Desc), queueSeq])
+
+  /// The TIMESTAMPED policy's ordering. Unused by the default policy, but its
+  /// presence is what makes switching policy a config change rather than a
+  /// migration.
+  @@index([status, forceDispatch(sort: Desc), scheduledAt, priority, queueSeq])
+
+  /// The reaper: expired leases.
   @@index([status, leaseExpiresAt])
+
+  /// `max(dispatchedAt)` feeds the rate gate and is read on every lease poll.
+  /// Without this it is a sequential scan of the whole table.
+  @@index([dispatchedAt(sort: Desc)])
+
+  /// The dashboard list, newest first, filtered and unfiltered.
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
   @@map("messages")
 }
 

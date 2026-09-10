@@ -21,16 +21,12 @@ const MAX_WAIT_SECONDS = 60;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Long-poll for the next message to send.
+ * Long-poll for the next message. The gateway dials out; the server never
+ * reaches into it, which is what lets it sit behind NAT -- and what makes the
+ * AWS topology work, where the Mac is not in the VPC.
  *
- * The gateway dials out and asks; the server never reaches into the gateway.
- * That direction is what lets the gateway sit on a laptop behind NAT with no
- * inbound rules -- and it is the same property that makes the production
- * topology work, where the backend is in AWS and the Mac is not.
- *
- * Claiming happens *here*, on request, rather than on a timer. An offline
- * gateway therefore cannot consume interval slots: if nobody asks, nothing
- * leaves the queue, and the hour is still there when the gateway returns.
+ * Claiming happens here, on request, not on a timer: an offline gateway cannot
+ * consume interval slots, because if nobody asks nothing leaves the queue.
  */
 gatewayRouter.get(
   '/lease',
@@ -41,8 +37,7 @@ gatewayRouter.get(
       : 25;
     const deadline = Date.now() + waitSeconds * 1000;
 
-    // Stop looping the moment the gateway hangs up, so a disconnected client
-    // does not keep a request alive holding a database connection.
+    // Stop the moment the gateway hangs up, so a dead client holds no connection.
     let aborted = false;
     req.on('close', () => {
       aborted = true;
@@ -84,19 +79,15 @@ gatewayRouter.get(
       await sleep(LEASE_POLL_INTERVAL_MS);
     } while (!aborted);
 
-    // 204 rather than an empty 200: there is genuinely no content, and the
-    // gateway simply asks again.
+    // 204, not an empty 200: there is genuinely nothing, and the gateway re-asks.
     res.status(204).end();
   }),
 );
 
 /**
- * Report an observed status change.
- *
- * Reports arrive duplicated, out of order, and occasionally from an attempt
- * that no longer exists. All three are handled in `applyStatusReport`, and all
- * three return 202 rather than an error: the gateway did nothing wrong, and
- * making it retry would not help.
+ * Duplicated, out-of-order and stale reports are all handled in
+ * `applyStatusReport` and all answer 202: the gateway did nothing wrong, and
+ * retrying would not help.
  */
 gatewayRouter.post(
   '/messages/:id/status',
@@ -137,10 +128,7 @@ gatewayRouter.post(
   }),
 );
 
-/**
- * Liveness. The server never connects to the gateway, so the only evidence the
- * gateway is alive is that it recently asked for work.
- */
+/** The server never connects out, so liveness means "asked for work recently". */
 gatewayRouter.post(
   '/heartbeat',
   validateBody(heartbeatSchema),

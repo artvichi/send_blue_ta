@@ -4,15 +4,9 @@ import { logger } from '../logger.js';
 import type { MessageDriver, StatusEvent, Unsubscribe } from './types.js';
 
 /**
- * Simulates the real driver's lifecycle on timers.
- *
- * This is not a test stub bolted on afterwards -- it is what makes the whole
- * system runnable by a reviewer who is not on a Mac, has not granted Full Disk
- * Access, and would rather not send real texts to a real phone. It also lets
- * the integration suite exercise the full path in CI.
- *
- * `MOCK_FAILURE_RATE` injects send failures so the unhappy path -- FAILED, then
- * retry from the dashboard -- can be demonstrated on demand.
+ * The real lifecycle on timers. Not a test stub: it is what lets the system run
+ * without a Mac, without Full Disk Access, and without texting a real person --
+ * and it powers CI. MOCK_FAILURE_RATE exercises the unhappy path on demand.
  */
 export function createMockDriver(): MessageDriver {
   return {
@@ -48,9 +42,7 @@ export function createMockDriver(): MessageDriver {
       };
 
       emit({ status: 'DELIVERED', occurredAt: new Date() }, MOCK_STEP_MS);
-      // Read receipts are the exception in reality, so the mock only sometimes
-      // produces one. A driver that always reached RECEIVED would paint a
-      // rosier picture than the real thing ever does.
+      // Only sometimes: a mock that always reached RECEIVED would flatter itself.
       if (Math.random() < 0.5) {
         emit({ status: 'RECEIVED', occurredAt: new Date() }, MOCK_STEP_MS * 3);
       }

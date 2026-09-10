@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MESSAGE_STATUSES } from './status.js';
 import { parsePhone } from './phone.js';
 
-/** iMessage has no hard body cap; this is a sanity bound, not a protocol limit. */
+/** A sanity bound, not a protocol limit. */
 export const MAX_BODY_LENGTH = 2000;
 
 export const messageStatusSchema = z.enum(MESSAGE_STATUSES);
@@ -11,11 +11,7 @@ export const messageStatusSchema = z.enum(MESSAGE_STATUSES);
 // Scheduling
 // ---------------------------------------------------------------------------
 
-/**
- * The single source of truth for the compose form. The web app feeds this to
- * `zodResolver` and the server feeds the same object to its validation
- * middleware, so the two can never drift.
- */
+/** Fed to zodResolver in the browser and to validation on the server, so the two cannot drift. */
 export const createMessageSchema = z.object({
   to: z
     .string()
@@ -98,10 +94,7 @@ export const settingsSchema = z.object({
 
 export type SettingsDto = z.infer<typeof settingsSchema>;
 
-/**
- * The interval floor exists so the demo can be driven at 10s without letting
- * anyone set it to zero and turn the queue into an unthrottled send loop.
- */
+/** The floor keeps a fast demo possible without allowing an unthrottled send loop. */
 export const updateSettingsSchema = z
   .object({
     sendIntervalSeconds: z.coerce
@@ -148,13 +141,9 @@ export type GatewayHealthDto = z.infer<typeof gatewayHealthSchema>;
 // ---------------------------------------------------------------------------
 
 /**
- * What the gateway receives when it wins a lease.
- *
- * `providerGuid` is the double-send guard travelling with the work. If a send
- * succeeded but its status report was lost, the reaper will eventually requeue
- * the message -- and re-leasing it would text a real person twice. A non-null
- * GUID here tells the gateway the send already happened, so it re-attaches to
- * the existing message instead of sending a second one.
+ * `providerGuid` is the double-send guard travelling with the work: non-null
+ * means a previous attempt already sent this and only the report was lost, so
+ * the gateway re-attaches instead of texting someone twice.
  */
 export const leaseSchema = z.object({
   messageId: z.string(),
@@ -162,9 +151,7 @@ export const leaseSchema = z.object({
   to: z.string(),
   body: z.string(),
   leaseExpiresAt: z.string(),
-  // Tolerant of an absent field, not just a null one: the gateway runs on a Mac
-  // and the server in the cloud, so the two are deployed independently and a
-  // version skew must not break the loop.
+  // Absent, not just null: gateway and server deploy independently.
   providerGuid: z
     .string()
     .nullish()
@@ -174,12 +161,8 @@ export const leaseSchema = z.object({
 export type LeaseDto = z.infer<typeof leaseSchema>;
 
 /**
- * A status report from the gateway.
- *
- * `dispatchToken` scopes the report to one specific attempt, so a report that
- * arrives after the lease was reaped and the message re-leased cannot corrupt
- * the newer attempt. `occurredAt` is when the gateway *observed* the change,
- * which is not when the server receives it.
+ * `dispatchToken` scopes the report to one attempt, so a late report cannot
+ * corrupt a newer one. `occurredAt` is when the gateway observed the change.
  */
 export const reportStatusSchema = z.object({
   dispatchToken: z.string().min(1),

@@ -7,24 +7,15 @@ export type PhoneParseResult =
   | { ok: false; reason: string };
 
 /**
- * Normalize user input to E.164 once, at the edge, so that everything
- * downstream -- the queue, the gateway, chat.db correlation -- compares the
- * same string. The mockup's placeholder is a US number, so US is the default
- * region for input that omits a country code.
+ * Normalize to E.164 once, at the edge, so the queue, the gateway and chat.db
+ * correlation all compare the same string.
  *
- * Acceptance is deliberately based on `isPossible()` rather than `isValid()`:
- *
- *  - `isValid()` checks the number against a numbering-plan database that goes
- *    stale, and it rejects every 555 area code -- including `+1 (555) 123-4567`,
- *    the example in the assessment's own mockup. Anyone testing the app with the
- *    obvious number would be blocked by a validation error.
- *  - Wrongly rejecting a deliverable number is worse than accepting an
- *    undeliverable one, because failure is already a first-class outcome here:
- *    the gateway reports FAILED and the dashboard surfaces it.
- *
- * `isPossible()` still rejects unparseable input and anything of the wrong
- * length. The `valid` flag is carried through so callers can warn without
- * blocking.
+ * Acceptance uses `isPossible()`, not `isValid()`. isValid() rejects every 555
+ * area code -- including +1 (555) 123-4567, the number in the assessment's own
+ * mockup -- and wrongly rejecting a deliverable number is worse than accepting
+ * an undeliverable one, since FAILED is already a visible, retryable outcome.
+ * isPossible() still rejects unparseable and wrong-length input; `valid` is
+ * carried through so a caller can warn without blocking.
  */
 export function parsePhone(input: string, country: CountryCode = DEFAULT_COUNTRY): PhoneParseResult {
   const trimmed = input.trim();

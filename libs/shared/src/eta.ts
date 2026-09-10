@@ -1,16 +1,12 @@
 /**
- * Projected send times.
- *
- * The scheduler mockup has no date picker, yet every queued row shows a
- * timestamp. That timestamp is not user input -- it is derived from queue
- * position and the drain interval:
+ * Send times are derived, not chosen -- the queue is FIFO at a fixed rate, so a
+ * message's ETA follows from its position:
  *
  *     anchor = max(lastDispatchedAt + interval, now)
  *     eta(i) = anchor + i * interval
  *
- * Deriving it server-side means it recalculates for free as the queue drains,
- * as messages are cancelled, and when the interval is changed at runtime. The
- * client never computes a schedule, it only renders one.
+ * Computed server-side on every read, so it recalculates for free when the queue
+ * drains, a message is cancelled, or the interval changes.
  */
 
 export interface EtaInput {
@@ -18,14 +14,13 @@ export interface EtaInput {
   lastDispatchedAt: Date | null;
   /** Current drain interval in seconds. */
   intervalSeconds: number;
-  /** Reference point, injected so the calculation stays pure and testable. */
+  /** Injected so the calculation stays pure. */
   now: Date;
 }
 
 /**
- * The earliest moment the next message may leave the queue. When nothing has
- * been dispatched yet -- or the last dispatch is already older than one full
- * interval -- the queue is due immediately and the anchor is simply `now`.
+ * Earliest moment the next message may leave. Collapses to `now` once an interval
+ * has elapsed, so an idle queue does not believe it owes a backlog of sends.
  */
 export function projectAnchor({ lastDispatchedAt, intervalSeconds, now }: EtaInput): Date {
   if (!lastDispatchedAt) return now;
@@ -39,7 +34,6 @@ export function projectEta(position: number, input: EtaInput): Date {
   return new Date(anchor.getTime() + position * input.intervalSeconds * 1000);
 }
 
-/** Projected send times for a whole queue, in order. */
 export function projectQueueEtas(count: number, input: EtaInput): Date[] {
   const anchor = projectAnchor(input);
   return Array.from(

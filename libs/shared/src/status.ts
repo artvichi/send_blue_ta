@@ -1,11 +1,6 @@
 /**
- * The message lifecycle.
- *
- * The five statuses the assessment names -- QUEUED, ACCEPTED, SENT, DELIVERED,
- * RECEIVED -- are kept verbatim. DISPATCHING, FAILED and CANCELED are internal
- * additions: DISPATCHING marks the window between claiming a message and the
- * gateway acknowledging it, which is what makes the lease/reaper recovery
- * possible.
+ * DISPATCHING marks the window between claiming a message and the gateway
+ * acknowledging it, which is what makes lease/reaper recovery possible.
  */
 export const MESSAGE_STATUSES = [
   'QUEUED',
@@ -21,12 +16,9 @@ export const MESSAGE_STATUSES = [
 export type MessageStatus = (typeof MESSAGE_STATUSES)[number];
 
 /**
- * Progress ranks. Status updates arrive out of order -- a `SENT` observed by
- * one chat.db poll can reach the server after the `DELIVERED` from the next --
- * so every write is guarded by a rank comparison rather than applied blindly.
- *
- * FAILED and CANCELED sit outside the progression: they are terminal and are
- * reached by rule, not by rank.
+ * Reports arrive out of order -- a SENT observed by one chat.db poll can reach
+ * the server after the DELIVERED from the next -- so every write is rank-guarded.
+ * FAILED and CANCELED sit outside the progression: terminal, reached by rule.
  */
 const PROGRESS_RANK: Record<MessageStatus, number> = {
   QUEUED: 0,
@@ -42,15 +34,9 @@ const PROGRESS_RANK: Record<MessageStatus, number> = {
 /** Statuses that admit no further transition. */
 export const TERMINAL_STATUSES = ['RECEIVED', 'FAILED', 'CANCELED'] as const;
 
-/**
- * DELIVERED is *effectively* terminal in practice: RECEIVED only ever fires
- * when the recipient has read receipts enabled, which frequently they do not.
- * The UI and the stats therefore treat DELIVERED as a success end-state rather
- * than as a message still in flight.
- */
+/** RECEIVED only fires with read receipts enabled, so DELIVERED counts as success. */
 export const SUCCESS_STATUSES = ['DELIVERED', 'RECEIVED'] as const;
 
-/** Statuses that mean the message is still moving through the system. */
 export const IN_FLIGHT_STATUSES = ['DISPATCHING', 'ACCEPTED', 'SENT'] as const;
 
 export function isTerminal(status: MessageStatus): boolean {
@@ -70,17 +56,10 @@ export function progressRank(status: MessageStatus): number {
 }
 
 /**
- * Whether `to` may be applied on top of `from`.
- *
- * The rules, in order of precedence:
- *   1. Nothing leaves a terminal status.
- *   2. CANCELED is only reachable from QUEUED -- once a message has been handed
- *      to the gateway it is too late to cancel it, because the send may already
- *      have happened.
- *   3. FAILED is reachable from any non-terminal status.
- *   4. A message may be requeued from FAILED via an explicit retry, which is
- *      modelled as its own operation rather than as a transition.
- *   5. Otherwise the move must strictly advance the progress rank.
+ * Nothing leaves a terminal status. CANCELED only from QUEUED -- once the
+ * gateway holds a message the send may already have happened. FAILED from any
+ * non-terminal status. QUEUED is never reachable: retry is its own operation, so
+ * no gateway report can resurrect a sent message. Otherwise the rank must advance.
  */
 export function canTransition(from: MessageStatus, to: MessageStatus): boolean {
   if (isTerminal(from)) return false;
@@ -90,11 +69,7 @@ export function canTransition(from: MessageStatus, to: MessageStatus): boolean {
   return progressRank(to) > progressRank(from);
 }
 
-/**
- * Resolve a reported status against the one already stored. Returns the status
- * that should be persisted -- which is the existing one whenever the report is
- * stale, duplicated or out of order.
- */
+/** Returns the status to persist: the existing one if the report is stale. */
 export function reconcileStatus(current: MessageStatus, reported: MessageStatus): MessageStatus {
   return canTransition(current, reported) ? reported : current;
 }

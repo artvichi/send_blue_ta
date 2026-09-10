@@ -15,12 +15,8 @@ export interface SendResult {
 export type Unsubscribe = () => void;
 
 /**
- * How the system actually puts a message on the wire.
- *
- * Two implementations ship: `applescript` (real iMessage via Messages.app plus
- * chat.db polling for delivery) and `mock` (the same lifecycle on timers).
- * A hosted provider -- the SendBlue API, BlueBubbles -- would be a third
- * implementation of this same interface, changing nothing above it.
+ * How a message reaches the wire. `applescript` and `mock` ship; a hosted
+ * provider would be a third implementation, changing nothing above it.
  */
 export interface MessageDriver {
   readonly name: string;
@@ -30,11 +26,6 @@ export interface MessageDriver {
 
   send(to: string, body: string): Promise<SendResult>;
 
-  /**
-   * Watch an already-sent message for delivery and read receipts.
-   *
-   * Returns an unsubscribe function. Implementations must tolerate never seeing
-   * RECEIVED: it only arrives when the recipient has read receipts enabled.
-   */
+  /** Implementations must tolerate never seeing RECEIVED. */
   watch(providerGuid: string, onStatus: (event: StatusEvent) => void): Unsubscribe;
 }
