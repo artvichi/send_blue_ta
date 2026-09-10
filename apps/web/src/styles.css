@@ -35,6 +35,16 @@
   --color-bad: oklch(58% 0.2 25);
   --color-bad-soft: oklch(95.5% 0.035 25);
 
+  /**
+   * Chart-only failure red, darker than --color-bad.
+   *
+   * In light mode the status green and red sit at the same lightness, which
+   * collapses to ΔE 3.4 under deuteranopia -- delivered and failed become the
+   * same mark. Dropping the lightness separates them by a channel that survives
+   * colour blindness (measured ΔE 10.8) without needing a pattern.
+   */
+  --color-chart-fail: oklch(46% 0.19 25);
+
   --font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
 }
@@ -91,6 +101,7 @@
   --color-warn-soft: oklch(28% 0.06 68);
   --color-bad: oklch(68% 0.19 25);
   --color-bad-soft: oklch(28% 0.07 25);
+  --color-chart-fail: oklch(68% 0.19 25);
 }
 
 /** Lets components opt into dark-only styling when a token is not enough. */

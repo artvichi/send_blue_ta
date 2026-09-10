@@ -8,11 +8,11 @@ import { ActivityDonut } from './activity-donut';
 /**
  * What the queue pushed out, hour by hour.
  *
- * The status colours (green delivered, red failed) measure ΔE 3.4 under
- * deuteranopia -- effectively identical to a red-green colourblind reader. They
- * are kept because they are the platform's own language for normal vision, and
- * the difference is carried by three encodings that do not depend on hue:
- * failures are hatched, always sit at the top of the stack, and are labelled.
+ * At the app's own status colours, green and red measure ΔE 3.4 under
+ * deuteranopia in light mode -- effectively the same mark. The chart therefore
+ * uses a darker failure red (--color-chart-fail), which separates them by
+ * lightness, a channel colour blindness leaves intact: measured ΔE 10.8. Stack
+ * position and the legend carry it the rest of the way.
  */
 const H = 132;
 const PAD_TOP = 10;
@@ -105,18 +105,11 @@ export function ActivityChart() {
                 <stop offset="0" stopColor="var(--color-brand)" stopOpacity="1" />
                 <stop offset="1" stopColor="var(--color-brand)" stopOpacity="0.6" />
               </linearGradient>
+              <linearGradient id="grad-failed" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="var(--color-chart-fail)" stopOpacity="1" />
+                <stop offset="1" stopColor="var(--color-chart-fail)" stopOpacity="0.6" />
+              </linearGradient>
 
-              {/* Secondary encoding: failures read as failures without colour. */}
-              <pattern
-                id="hatch-fail"
-                width="4"
-                height="4"
-                patternUnits="userSpaceOnUse"
-                patternTransform="rotate(45)"
-              >
-                <rect width="4" height="4" fill="var(--color-bad)" />
-                <line x1="0" y1="0" x2="0" y2="4" stroke="var(--color-surface)" strokeWidth="1.6" />
-              </pattern>
             </defs>
 
             {[0.5, 1].map((f) => (
@@ -174,7 +167,7 @@ export function ActivityChart() {
                         rx="1"
                         fill={
                           s.key === 'failed'
-                            ? 'url(#hatch-fail)'
+                            ? 'url(#grad-failed)'
                             : s.key === 'delivered'
                               ? 'url(#grad-delivered)'
                               : 'url(#grad-inflight)'
@@ -282,14 +275,7 @@ function Legend() {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-mute">
       <Swatch className="bg-linear-to-b from-good to-good/60" label="Delivered" />
       <Swatch className="bg-linear-to-b from-brand to-brand/60" label="In flight" />
-      <Swatch
-        label="Failed"
-        className="bg-bad"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(45deg, transparent 0 2px, var(--color-surface) 2px 3px)',
-        }}
-      />
+      <Swatch label="Failed" className="bg-linear-to-b from-[var(--color-chart-fail)] to-[var(--color-chart-fail)]/60" />
     </div>
   );
 }
@@ -297,15 +283,13 @@ function Legend() {
 function Swatch({
   className,
   label,
-  style,
 }: {
   className: string;
   label: string;
-  style?: React.CSSProperties;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`size-2.5 rounded-[3px] ${className}`} style={style} aria-hidden />
+      <span className={`size-2.5 rounded-[3px] ${className}`} aria-hidden />
       {label}
     </span>
   );

@@ -29,7 +29,7 @@ export function ActivityDonut({ data }: { data: ActivityDto }) {
   const slices = [
     { key: 'delivered', label: 'Delivered', value: totals.delivered, fill: 'url(#donut-delivered)' },
     { key: 'inFlight', label: 'In flight', value: totals.inFlight, fill: 'url(#donut-inflight)' },
-    { key: 'failed', label: 'Failed', value: totals.failed, fill: 'url(#hatch-fail-donut)' },
+    { key: 'failed', label: 'Failed', value: totals.failed, fill: 'url(#donut-failed)' },
   ].filter((s) => s.value > 0);
 
   if (total === 0) {
@@ -60,16 +60,10 @@ export function ActivityDonut({ data }: { data: ActivityDto }) {
             <stop offset="0" stopColor="var(--color-brand)" stopOpacity="1" />
             <stop offset="1" stopColor="var(--color-brand)" stopOpacity="0.65" />
           </linearGradient>
-          <pattern
-            id="hatch-fail-donut"
-            width="5"
-            height="5"
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(45)"
-          >
-            <rect width="5" height="5" fill="var(--color-bad)" />
-            <line x1="0" y1="0" x2="0" y2="5" stroke="var(--color-surface)" strokeWidth="1.8" />
-          </pattern>
+          <linearGradient id="donut-failed" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="var(--color-chart-fail)" stopOpacity="1" />
+            <stop offset="1" stopColor="var(--color-chart-fail)" stopOpacity="0.65" />
+          </linearGradient>
         </defs>
 
         <g transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}>
@@ -124,7 +118,7 @@ export function ActivityDonut({ data }: { data: ActivityDto }) {
                 style={{
                   background:
                     s.key === 'failed'
-                      ? 'repeating-linear-gradient(45deg, var(--color-bad) 0 2px, var(--color-surface) 2px 3px)'
+                      ? 'var(--color-chart-fail)'
                       : s.key === 'delivered'
                         ? 'var(--color-good)'
                         : 'var(--color-brand)',
