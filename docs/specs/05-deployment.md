@@ -5,9 +5,9 @@ applied: this is an assessment, not a running service.
 
 ## Docker
 
-Multi-stage builds: `deps` (pnpm fetch, layer-cached) → `build` → `runner`
-(`node:22-alpine`, non-root). `pnpm deploy --filter` produces a pruned
-`node_modules` per app, which is the trick that keeps monorepo images small.
+Multi-stage builds: `deps` (`npm ci`, layer-cached on the manifests alone) →
+`build` → `runner` (`node:22-alpine`, non-root). A separate `prod-deps` stage
+runs `npm ci --omit=dev`, so the runtime image carries no build tooling.
 
 `docker-compose.yml` runs Postgres for local development. `docker-compose.full.yml`
 adds the server and web for a container-only run.
@@ -24,14 +24,14 @@ library, which is what a deployable artifact wants anyway. The consequence is
 that `libs/shared`'s runtime dependencies become the app's, and are declared as
 such in each app's `package.json`.
 
-**`.npmrc` hoists `@prisma/*`.** The Prisma client is generated into
-`apps/server/src/db/generated` — outside `node_modules` — so under pnpm's strict
-layout it cannot reach `@prisma/client`'s private dependencies. Without the hoist
-the built server fails at *startup*, not at build time.
+**The Prisma client is generated outside `node_modules`.** It lives in
+`apps/server/src/db/generated` — outside `node_modules` — so it depends on npm
+hoisting `@prisma/client`'s internals to the root. Under a strict, non-hoisting
+layout the built server fails at *startup*, not at build time.
 
 ## CI (`.github/workflows/ci.yml`)
 
-On every pull request: install with a pnpm cache → typecheck → lint → unit tests
+On every pull request: install with an npm cache → typecheck → lint → unit tests
 → integration tests against a Postgres **service container** → build.
 
 Nx caching means only affected projects rebuild.

@@ -6,25 +6,22 @@
 # whole stack can be run with compose alone.
 
 FROM node:22-alpine AS base
-ENV PNPM_HOME=/pnpm
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
 WORKDIR /repo
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json package-lock.json .npmrc ./
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
 COPY apps/gateway/package.json apps/gateway/
 COPY libs/shared/package.json libs/shared/
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 FROM deps AS build
 COPY . .
 # Vite inlines env at build time, so the API URL is a build argument.
-ARG VITE_API_URL=http://localhost:3000
+ARG VITE_API_URL=http://localhost:4310
 ENV VITE_API_URL=$VITE_API_URL
-RUN pnpm --filter @sb/web exec vite build
+RUN cd apps/web && npx vite build
 
 FROM nginx:1.27-alpine AS runner
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html

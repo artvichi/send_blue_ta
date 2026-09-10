@@ -21,35 +21,39 @@ Browser ──REST + polling──▶ Server ──▶ Postgres  (the queue of r
 
 ## Quick start
 
-Prerequisites: **Node 22+**, **pnpm 9+**, **Docker** (or any local Postgres).
+Prerequisites: **Node 22+**, **npm 10+**, **Docker** (or any local Postgres).
 
 ```bash
-pnpm install
+npm install
 cp .env.example .env
 
-pnpm db:up            # Postgres on :5433 via docker compose
-pnpm db:migrate       # create the schema
+npm run db:up            # Postgres on :5433 via docker compose
+npm run db:migrate       # create the schema
 
-pnpm dev              # server :3000 + web :4200
+npm run dev              # api :4310 + web :4320
 ```
 
 In a second terminal:
 
 ```bash
-pnpm gateway:mock     # simulated sending -- no Mac permissions needed
+npm run gateway:mock     # simulated sending -- no Mac permissions needed
 ```
 
-Open **http://localhost:4200**, schedule a message, then set the send rate to
+Open **http://localhost:4320**, schedule a message, then set the send rate to
 **10s** on the Dashboard and watch the queue drain.
+
+> **Ports** are 4310 (API), 4320 (web), 5433 (Postgres) — deliberately off the
+> common 3000/4200/5432 defaults so the stack does not collide with whatever else
+> you have running locally.
 
 > **Already running Postgres on 5432?** Compose deliberately uses **5433** to
 > avoid the clash. To use an existing local Postgres instead, point
-> `DATABASE_URL` at it and skip `pnpm db:up`.
+> `DATABASE_URL` at it and skip `npm run db:up`.
 
 ### Sending real iMessages
 
 ```bash
-pnpm gateway:real
+npm run gateway:real
 ```
 
 Requires macOS with Messages signed in, plus two permissions granted to **the
@@ -67,7 +71,7 @@ rather than failing on the first real send.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.full.yml up --build
-# web :8080, api :3000
+# web :4330, api :4310
 ```
 
 The gateway is still run natively — it needs macOS APIs and cannot be containerized.
@@ -89,7 +93,7 @@ docs/
   adr/        the decisions worth arguing about
 ```
 
-Nx monorepo on pnpm workspaces. Projects: `web`, `server`, `gateway`, `shared`.
+Nx monorepo on npm workspaces. Projects: `web`, `server`, `gateway`, `shared`.
 
 ---
 
@@ -97,14 +101,14 @@ Nx monorepo on pnpm workspaces. Projects: `web`, `server`, `gateway`, `shared`.
 
 | Command | Does |
 |---|---|
-| `pnpm dev` | server + web |
-| `pnpm dev:all` | server + web + gateway |
-| `pnpm gateway:mock` / `pnpm gateway:real` | gateway, simulated / real |
-| `pnpm verify` | typecheck + lint + unit tests |
-| `pnpm test` | unit tests |
-| `pnpm test:int` | integration tests (needs Postgres) |
-| `pnpm build` | build everything |
-| `pnpm db:up` / `db:migrate` / `db:seed` / `db:studio` | database |
+| `npm run dev` | server + web |
+| `npm run dev:all` | server + web + gateway |
+| `npm run gateway:mock` / `npm run gateway:real` | gateway, simulated / real |
+| `npm run verify` | typecheck + lint + unit tests |
+| `npm test` | unit tests |
+| `npm run test:int` | integration tests (needs Postgres) |
+| `npm run build` | build everything |
+| `npm run db:up` / `db:migrate` / `db:seed` / `db:studio` | database |
 
 ---
 
@@ -207,8 +211,8 @@ them explicitly.
 ## Testing
 
 ```bash
-pnpm test        # unit -- pure logic, no database, milliseconds
-pnpm test:int    # integration -- real Postgres, own database
+npm test        # unit -- pure logic, no database, milliseconds
+npm run test:int    # integration -- real Postgres, own database
 ```
 
 Unit tests cover the status state machine, ETA projection, the rate gate and

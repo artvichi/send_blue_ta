@@ -14,14 +14,14 @@ Read `docs/specs/00-overview.md` before making architectural changes. The ADRs i
 ## Commands
 
 ```bash
-pnpm db:up            # Postgres via docker compose
-pnpm db:migrate       # apply migrations
-pnpm dev              # server + web
-pnpm gateway:mock     # gateway, simulated sending
-pnpm gateway:real     # gateway, real iMessages (needs Full Disk Access)
+npm run db:up            # Postgres via docker compose
+npm run db:migrate       # apply migrations
+npm run dev              # server + web
+npm run gateway:mock     # gateway, simulated sending
+npm run gateway:real     # gateway, real iMessages (needs Full Disk Access)
 
-pnpm verify           # typecheck + lint + unit tests -- run before committing
-pnpm test:int         # integration tests (needs Postgres)
+npm run verify           # typecheck + lint + unit tests -- run before committing
+npm run test:int         # integration tests (needs Postgres)
 ```
 
 Nx targets: `nx run <project>:<target>`. Projects are `web`, `server`, `gateway`,
@@ -68,11 +68,15 @@ Nx targets: `nx run <project>:<target>`. Projects are `web`, `server`, `gateway`
 
 - Prisma 7 moved the connection URL out of the schema; it lives in
   `prisma.config.ts`, and the runtime uses the `pg` driver adapter.
-- **`.npmrc` hoists `@prisma/*` on purpose.** The client is generated into
-  `apps/server/src/db/generated`, outside `node_modules`, so under pnpm's strict
-  layout it cannot resolve `@prisma/client-runtime-utils`. Removing the
-  `public-hoist-pattern` lines breaks the built server at startup (not at build
-  time, which is what makes it easy to miss).
+- **The Prisma client is generated outside `node_modules`** (into
+  `apps/server/src/db/generated`), so it relies on npm hoisting its internals to
+  the root. This is one of the reasons the project uses npm: pnpm's strict layout
+  cannot resolve `@prisma/client-runtime-utils` from there, and the failure shows
+  up at server *startup* rather than at build time.
+- **`.npmrc` sets `legacy-peer-deps`.** npm 10's resolver crashes on this graph
+  without it. It is a workaround for an npm bug, not a way to dodge a real
+  version conflict -- those are fixed properly (see `esbuild`, pinned to satisfy
+  Vite 8's peer range).
 - **`server` and `gateway` build with esbuild, not `tsc`.** tsc does not rewrite
   path aliases on emit, so a tsc build produces JS that still imports
   `@sb/shared` and fails to resolve. Bundling inlines it. Consequence: anything

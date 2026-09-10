@@ -12,24 +12,24 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-sbta}:${POSTGRES_PASSWORD:-sbta}@postgres:5432/${POSTGRES_DB:-sbta}?schema=public
       GATEWAY_TOKEN: ${GATEWAY_TOKEN:-dev-gateway-token-change-me}
-      CORS_ORIGIN: http://localhost:8080
+      CORS_ORIGIN: http://localhost:4330
       NODE_ENV: production
-      PORT: 3000
+      PORT: 4310
     ports:
-      - '3000:3000'
+      - '4310:4310'
     depends_on:
       postgres:
         condition: service_healthy
     # Migrations run at start so a fresh volume is usable without a manual step.
-    command: sh -c "node node_modules/prisma/build/index.js migrate deploy && node dist/src/main.js"
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_API_URL: http://localhost:3000
+        VITE_API_URL: http://localhost:4310
     ports:
-      - '8080:80'
+      - '4330:80'
     depends_on:
       - server

@@ -31,4 +31,4 @@ runtime connects through `PrismaPg` in `src/db/prisma.ts`. Regenerate with
 `nx run server:db:generate` after schema edits.
 
 `declaration` is off in `tsconfig.json` — this is an application and emitting
-types only produces unresolvable cross-package naming errors under pnpm.
+types only produces unresolvable cross-package naming errors in a workspace.

@@ -64,8 +64,8 @@ resource "aws_security_group" "service" {
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port       = 3000
-    to_port         = 3000
+    from_port       = 4310
+    to_port         = 4310
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
     description     = "From the ALB only"
@@ -91,7 +91,7 @@ resource "aws_lb" "this" {
 
 resource "aws_lb_target_group" "server" {
   name        = "${var.name}-server"
-  port        = 3000
+  port        = 4310
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
@@ -178,11 +178,11 @@ resource "aws_ecs_task_definition" "server" {
     image     = "${aws_ecr_repository.server.repository_url}:${var.image_tag}"
     essential = true
 
-    portMappings = [{ containerPort = 3000, protocol = "tcp" }]
+    portMappings = [{ containerPort = 4310, protocol = "tcp" }]
 
     environment = [
       { name = "NODE_ENV", value = "production" },
-      { name = "PORT", value = "3000" },
+      { name = "PORT", value = "4310" },
     ]
 
     secrets = [
@@ -220,7 +220,7 @@ resource "aws_ecs_service" "server" {
   load_balancer {
     target_group_arn = aws_lb_target_group.server.arn
     container_name   = "server"
-    container_port   = 3000
+    container_port   = 4310
   }
 
   deployment_circuit_breaker {

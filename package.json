@@ -2,7 +2,7 @@
   "name": "@sb/source",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@9.14.2",
+  "packageManager": "npm@10.9.4",
   "engines": {
     "node": ">=22"
   },
@@ -29,7 +29,7 @@
     "@types/node": "22.15.3",
     "@typescript-eslint/eslint-plugin": "8.70.0",
     "@typescript-eslint/parser": "8.70.0",
-    "esbuild": "0.25.0",
+    "esbuild": "0.28.2",
     "eslint": "9.17.0",
     "nx": "23.2.1",
     "prettier": "3.4.2",
@@ -37,5 +37,9 @@
     "typescript": "5.9.3",
     "vite": "8.2.2",
     "vitest": "4.1.11"
-  }
+  },
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ]
 }

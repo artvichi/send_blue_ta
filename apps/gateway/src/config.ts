@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  SERVER_URL: z.string().url().default('http://localhost:3000'),
+  SERVER_URL: z.string().url().default('http://localhost:4310'),
   GATEWAY_TOKEN: z.string().min(1, 'GATEWAY_TOKEN is required'),
   GATEWAY_ID: z.string().min(1).default('local-gateway'),
 

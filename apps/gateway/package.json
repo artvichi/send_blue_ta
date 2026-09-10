@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/main.ts",
   "dependencies": {
-    "@sb/shared": "workspace:*",
+    "@sb/shared": "*",
     "libphonenumber-js": "1.13.12",
     "zod": "4.6.0"
   }
