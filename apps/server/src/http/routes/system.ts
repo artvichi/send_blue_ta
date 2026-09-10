@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import type { GatewayHealthDto } from '@sb/shared';
+import { activityRangeSchema, type GatewayHealthDto } from '@sb/shared';
 import { asyncRoute } from '../middleware/error-handler.js';
 import { prisma } from '../../db/prisma.js';
 import { env } from '../../config/env.js';
 import { getStats } from '../../services/messages.js';
-import { activityByHour } from '../../repositories/message-queue.js';
+import { activityByRange } from '../../repositories/message-queue.js';
 
 export const systemRouter = Router();
 
@@ -15,16 +15,17 @@ systemRouter.get(
   }),
 );
 
-/** Hourly outcomes for the dashboard chart. */
+/** Outcomes over a range, for the dashboard chart. */
 systemRouter.get(
   '/stats/activity',
   asyncRoute(async (req, res) => {
-    const requested = Number(req.query.hours ?? 24);
-    const hours = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 168) : 24;
-    const buckets = await activityByHour(hours);
+    const parsed = activityRangeSchema.safeParse(req.query.range ?? '24h');
+    const range = parsed.success ? parsed.data : '24h';
+    const { buckets, unit } = await activityByRange(range);
     res.json({
-      hours,
-      buckets: buckets.map((b) => ({ ...b, hour: b.hour.toISOString() })),
+      range,
+      unit,
+      buckets: buckets.map((b) => ({ ...b, bucket: b.bucket.toISOString() })),
     });
   }),
 );

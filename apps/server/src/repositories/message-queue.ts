@@ -122,49 +122,68 @@ export async function forceDispatch(id: string, db: Db = prisma) {
   });
 }
 
+export type ActivityRange = '24h' | '7d' | '30d';
+
 export interface ActivityBucket {
-  hour: Date;
+  bucket: Date;
   delivered: number;
   failed: number;
   inFlight: number;
 }
 
+/** Hourly detail is unreadable across a month, so longer ranges bucket by day. */
+const RANGES: Record<ActivityRange, { unit: 'hour' | 'day'; steps: number }> = {
+  '24h': { unit: 'hour', steps: 24 },
+  '7d': { unit: 'day', steps: 7 },
+  '30d': { unit: 'day', steps: 30 },
+};
+
 /**
- * What the queue pushed out, bucketed by hour.
+ * What the queue pushed out, bucketed over a range.
  *
  * Bucketed on `dispatchedAt` rather than `createdAt`: the question this answers
  * is "what did the system send, and how did it go", not "when did people type".
- * Hours with no activity are filled in by generate_series so the chart keeps a
- * continuous time axis instead of collapsing gaps.
+ * Empty buckets are filled in by generate_series so the time axis stays
+ * continuous instead of collapsing gaps.
  */
-export async function activityByHour(hours: number, db: Db = prisma): Promise<ActivityBucket[]> {
+export async function activityByRange(
+  range: ActivityRange,
+  db: Db = prisma,
+): Promise<{ buckets: ActivityBucket[]; unit: 'hour' | 'day' }> {
+  const { unit, steps } = RANGES[range];
+  const interval = Prisma.raw(`'1 ${unit}'`);
+  const trunc = Prisma.raw(`'${unit}'`);
+
   const rows = await db.$queryRaw<
-    { hour: Date; delivered: bigint; failed: bigint; in_flight: bigint }[]
+    { bucket: Date; delivered: bigint; failed: bigint; in_flight: bigint }[]
   >(Prisma.sql`
     WITH slots AS (
       SELECT generate_series(
-        date_trunc('hour', now()) - make_interval(hours => ${hours - 1}),
-        date_trunc('hour', now()),
-        interval '1 hour'
-      ) AS hour
+        date_trunc(${trunc}, now()) - make_interval(${Prisma.raw(unit === 'hour' ? 'hours' : 'days')} => ${steps - 1}),
+        date_trunc(${trunc}, now()),
+        ${interval}::interval
+      ) AS bucket
     )
     SELECT
-      s.hour,
+      s.bucket,
       COUNT(m.id) FILTER (WHERE m.status IN ('DELIVERED', 'RECEIVED')) AS delivered,
       COUNT(m.id) FILTER (WHERE m.status = 'FAILED')                   AS failed,
       COUNT(m.id) FILTER (WHERE m.status IN ('DISPATCHING','ACCEPTED','SENT')) AS in_flight
     FROM slots s
     LEFT JOIN "messages" m
-      ON m."dispatchedAt" >= s.hour
-     AND m."dispatchedAt" <  s.hour + interval '1 hour'
-    GROUP BY s.hour
-    ORDER BY s.hour ASC;
+      ON m."dispatchedAt" >= s.bucket
+     AND m."dispatchedAt" <  s.bucket + ${interval}::interval
+    GROUP BY s.bucket
+    ORDER BY s.bucket ASC;
   `);
 
-  return rows.map((r) => ({
-    hour: r.hour,
-    delivered: Number(r.delivered),
-    failed: Number(r.failed),
-    inFlight: Number(r.in_flight),
-  }));
+  return {
+    unit,
+    buckets: rows.map((r) => ({
+      bucket: r.bucket,
+      delivered: Number(r.delivered),
+      failed: Number(r.failed),
+      inFlight: Number(r.in_flight),
+    })),
+  };
 }

@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import type { ActivityDto } from '@sb/shared';
+import { ACTIVITY_RANGES, type ActivityDto, type ActivityRange } from '@sb/shared';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { useActivity } from '../api';
+import { ActivityDonut } from './activity-donut';
 
 /**
  * What the queue pushed out, hour by hour.
@@ -20,8 +22,16 @@ const GAP = 2;
 
 type Segment = { key: 'delivered' | 'inFlight' | 'failed'; label: string; value: number };
 
+const RANGE_LABEL: Record<ActivityRange, string> = {
+  '24h': '24 hours',
+  '7d': '7 days',
+  '30d': '30 days',
+};
+
 export function ActivityChart() {
-  const { data, isPending } = useActivity();
+  const [range, setRange] = useState<ActivityRange>('24h');
+  const [view, setView] = useState<'bars' | 'donut'>('bars');
+  const { data, isPending } = useActivity(range);
   const [hover, setHover] = useState<number | null>(null);
 
   const buckets = data?.buckets ?? [];
@@ -42,12 +52,33 @@ export function ActivityChart() {
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-rule bg-surface p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold tracking-tight">Last 24 hours</h2>
-        <Legend />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold tracking-tight">Last {RANGE_LABEL[range]}</h2>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            options={ACTIVITY_RANGES.map((r) => ({ value: r, label: r }))}
+            value={range}
+            onChange={setRange}
+            label="Time range"
+          />
+          <Segmented
+            options={[
+              { value: 'bars', label: 'Over time' },
+              { value: 'donut', label: 'Share' },
+            ]}
+            value={view}
+            onChange={setView}
+            label="Chart type"
+          />
+        </div>
       </div>
 
-      {total === 0 ? (
+      {view === 'bars' && <Legend />}
+
+      {view === 'donut' && data ? (
+        <ActivityDonut data={data} />
+      ) : total === 0 ? (
         <p className="py-10 text-center text-sm text-ink-mute">
           Nothing has been dispatched in the last 24 hours.
         </p>
@@ -61,6 +92,20 @@ export function ActivityChart() {
             aria-label={`Messages dispatched per hour over the last 24 hours: ${total} total`}
           >
             <defs>
+              {/*
+                Same-hue vertical gradients. Decoration only: the value is the
+                bar's height, and a single hue per series keeps the gradient
+                from reading as a second encoding.
+              */}
+              <linearGradient id="grad-delivered" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="var(--color-good)" stopOpacity="1" />
+                <stop offset="1" stopColor="var(--color-good)" stopOpacity="0.6" />
+              </linearGradient>
+              <linearGradient id="grad-inflight" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="var(--color-brand)" stopOpacity="1" />
+                <stop offset="1" stopColor="var(--color-brand)" stopOpacity="0.6" />
+              </linearGradient>
+
               {/* Secondary encoding: failures read as failures without colour. */}
               <pattern
                 id="hatch-fail"
@@ -108,7 +153,7 @@ export function ActivityChart() {
 
               return (
                 <g
-                  key={b.hour}
+                  key={b.bucket}
                   onMouseEnter={() => setHover(i)}
                   onMouseLeave={() => setHover(null)}
                 >
@@ -131,10 +176,11 @@ export function ActivityChart() {
                           s.key === 'failed'
                             ? 'url(#hatch-fail)'
                             : s.key === 'delivered'
-                              ? 'var(--color-good)'
-                              : 'var(--color-brand)'
+                              ? 'url(#grad-delivered)'
+                              : 'url(#grad-inflight)'
                         }
-                        opacity={hover === null || hover === i ? 1 : 0.45}
+                        opacity={hover === null || hover === i ? 1 : 0.4}
+                        style={{ transition: 'opacity 150ms ease-out' }}
                       />
                     );
                   })}
@@ -144,14 +190,54 @@ export function ActivityChart() {
           </svg>
 
           <div className="mt-1 flex justify-between text-[10px] tabular-nums text-ink-mute">
-            <span>{label(buckets[0]?.hour)}</span>
+            <span>{label(buckets[0]?.bucket, data?.unit)}</span>
             <span>now</span>
           </div>
 
-          {hover !== null && buckets[hover] && <Tooltip bucket={buckets[hover]} count={count} index={hover} />}
+          {hover !== null && buckets[hover] && (
+            <Tooltip bucket={buckets[hover]} count={count} index={hover} unit={data?.unit} />
+          )}
         </div>
       )}
     </section>
+  );
+}
+
+function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (next: T) => void;
+  label: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="flex items-center gap-0.5 rounded-lg border border-rule bg-sunk/60 p-0.5"
+    >
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150 ease-out',
+            value === o.value
+              ? 'bg-surface text-ink shadow-sm'
+              : 'text-ink-mute hover:text-ink',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -159,10 +245,12 @@ function Tooltip({
   bucket,
   count,
   index,
+  unit,
 }: {
   bucket: ActivityDto['buckets'][number];
   count: number;
   index: number;
+  unit?: 'hour' | 'day';
 }) {
   const rows = [
     { label: 'Delivered', value: bucket.delivered },
@@ -175,7 +263,7 @@ function Tooltip({
       className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-lg border border-rule bg-surface px-3 py-2 text-xs shadow-lg"
       style={{ left: `${((index + 0.5) / count) * 100}%` }}
     >
-      <p className="mb-1 font-medium tabular-nums">{label(bucket.hour)}</p>
+      <p className="mb-1 font-medium tabular-nums">{label(bucket.bucket, unit)}</p>
       {rows.length === 0 ? (
         <p className="text-ink-mute">Nothing sent</p>
       ) : (
@@ -192,8 +280,8 @@ function Tooltip({
 function Legend() {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-mute">
-      <Swatch className="bg-good" label="Delivered" />
-      <Swatch className="bg-brand" label="In flight" />
+      <Swatch className="bg-linear-to-b from-good to-good/60" label="Delivered" />
+      <Swatch className="bg-linear-to-b from-brand to-brand/60" label="In flight" />
       <Swatch
         label="Failed"
         className="bg-bad"
@@ -224,6 +312,9 @@ function Swatch({
 }
 
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
-function label(iso?: string): string {
-  return iso ? timeFmt.format(new Date(iso)) : '';
+const dayFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+
+function label(iso?: string, unit: 'hour' | 'day' = 'hour'): string {
+  if (!iso) return '';
+  return (unit === 'day' ? dayFmt : timeFmt).format(new Date(iso));
 }

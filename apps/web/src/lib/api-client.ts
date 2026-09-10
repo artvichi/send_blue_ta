@@ -84,9 +84,12 @@ export const api = {
   sendNow: (id: string) =>
     request<MessageDetailDto>(`/api/messages/${id}/send-now`, { method: 'POST' }),
 
+  clearHistory: () => request<{ deleted: number; kept: number }>('/api/messages', { method: 'DELETE' }),
+
   getStats: () => request<StatsDto>('/api/stats'),
 
-  getActivity: () => request<ActivityDto>('/api/stats/activity?hours=24'),
+  getActivity: (range: string) =>
+    request<ActivityDto>(`/api/stats/activity?range=${encodeURIComponent(range)}`),
 
   getSettings: () => request<SettingsResponse>('/api/settings'),
 

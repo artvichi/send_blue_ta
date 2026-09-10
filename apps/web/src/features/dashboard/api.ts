@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { ActivityRange } from '@sb/shared';
 import { api, ApiError } from '@/lib/api-client';
 import { POLL, queryKeys } from '@/lib/query-keys';
 
-export function useActivity() {
+export function useActivity(range: ActivityRange = '24h') {
   return useQuery({
-    queryKey: queryKeys.activity,
-    queryFn: api.getActivity,
+    queryKey: queryKeys.activity(range),
+    queryFn: () => api.getActivity(range),
     refetchInterval: POLL.stats,
   });
 }
@@ -37,6 +38,24 @@ export function useMessageDetail(id: string | null) {
     queryFn: () => api.getMessage(id as string),
     enabled: !!id,
     refetchInterval: POLL.detail,
+  });
+}
+
+export function useClearHistory() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: api.clearHistory,
+    onSuccess: ({ deleted, kept }) => {
+      void client.invalidateQueries();
+      toast.success(
+        `Cleared ${deleted} message${deleted === 1 ? '' : 's'}`,
+        kept > 0 ? { description: `${kept} queued or in flight left alone.` } : undefined,
+      );
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiError ? error.message : 'Could not clear the history');
+    },
   });
 }
 

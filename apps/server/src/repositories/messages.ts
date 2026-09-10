@@ -79,3 +79,28 @@ export async function countsByStatus(db: Db = prisma): Promise<Record<MessageSta
   for (const row of rows) counts[row.status] = row._count._all;
   return counts;
 }
+
+/** Statuses a message can no longer leave, and so is safe to delete. */
+const CLEARABLE: MessageStatus[] = ['DELIVERED', 'RECEIVED', 'FAILED', 'CANCELED'];
+
+/**
+ * Delete finished messages.
+ *
+ * Deliberately never touches QUEUED or in-flight work: those are sends that
+ * have not happened yet, and dropping them would silently cancel something the
+ * user scheduled. Cancelling is a separate, explicit action.
+ *
+ * Events go with them via the cascade on the relation.
+ */
+export async function clearHistory(db: Db = prisma): Promise<{ deleted: number; kept: number }> {
+  const [deleted, kept] = await db.$transaction([
+    db.message.deleteMany({ where: { status: { in: CLEARABLE } } }),
+    db.message.count({ where: { status: { notIn: CLEARABLE } } }),
+  ]);
+  return { deleted: deleted.count, kept };
+}
+
+/** How many rows `clearHistory` would remove, for the confirmation copy. */
+export async function countClearable(db: Db = prisma): Promise<number> {
+  return db.message.count({ where: { status: { in: CLEARABLE } } });
+}

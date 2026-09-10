@@ -19,7 +19,7 @@ function Tile({
   tone?: 'good' | 'bad' | 'brand';
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-rule bg-surface p-4">
+    <div className="group flex flex-col gap-2 rounded-2xl border border-rule bg-surface p-4 transition-shadow duration-200 hover:shadow-sm">
       <span className="flex items-center gap-2 text-xs font-medium text-ink-mute [&_svg]:size-3.5">
         {icon}
         {label}

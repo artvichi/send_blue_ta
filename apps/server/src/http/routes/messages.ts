@@ -10,7 +10,12 @@ import { pathParam } from '../params.js';
 import { validateBody, validateQuery, validatedQuery } from '../middleware/validate.js';
 import { badRequest, conflict, notFound } from '../errors.js';
 import { forceDispatch } from '../../repositories/message-queue.js';
-import { cancelMessage, createMessage, retryMessage } from '../../repositories/messages.js';
+import {
+  cancelMessage,
+  clearHistory,
+  createMessage,
+  retryMessage,
+} from '../../repositories/messages.js';
 import { getMessageDetail, listMessages, listQueue } from '../../services/messages.js';
 import { logger } from '../../config/logger.js';
 
@@ -63,6 +68,19 @@ messagesRouter.get(
   asyncRoute(async (_req, res) => {
     const query = validatedQuery<ListMessagesQuery>(res);
     res.json(await listQueue(query.limit));
+  }),
+);
+
+/**
+ * Clear finished messages. Queued and in-flight work is kept -- deleting a
+ * scheduled send is cancelling it, and that is a different, explicit action.
+ */
+messagesRouter.delete(
+  '/',
+  asyncRoute(async (_req, res) => {
+    const result = await clearHistory();
+    logger.info(result, 'history cleared');
+    res.json(result);
   }),
 );
 

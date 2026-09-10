@@ -29,15 +29,20 @@ export const gatewayHealthSchema = z.object({
 
 export type GatewayHealthDto = z.infer<typeof gatewayHealthSchema>;
 
+export const ACTIVITY_RANGES = ['24h', '7d', '30d'] as const;
+export const activityRangeSchema = z.enum(ACTIVITY_RANGES);
+export type ActivityRange = (typeof ACTIVITY_RANGES)[number];
+
 export const activityBucketSchema = z.object({
-  hour: z.string(),
+  bucket: z.string(),
   delivered: z.number(),
   failed: z.number(),
   inFlight: z.number(),
 });
 
 export const activitySchema = z.object({
-  hours: z.number(),
+  range: activityRangeSchema,
+  unit: z.enum(['hour', 'day']),
   buckets: z.array(activityBucketSchema),
 });
 
