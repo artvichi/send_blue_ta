@@ -8,10 +8,11 @@ export function DashboardPage() {
       <StatTiles />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-        <div className="order-2 min-w-0 lg:order-1">
+        {/* Table first everywhere: it is the content, the rate card is a control. */}
+        <div className="min-w-0">
           <MessageTable />
         </div>
-        <div className="order-1 lg:order-2">
+        <div>
           <IntervalControl />
         </div>
       </div>

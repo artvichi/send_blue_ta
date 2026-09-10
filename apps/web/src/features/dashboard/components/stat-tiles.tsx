@@ -44,7 +44,7 @@ export function StatTiles() {
 
   if (isPending) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-24 rounded-2xl" />
         ))}
@@ -55,7 +55,7 @@ export function StatTiles() {
   if (!data) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <Tile
         icon={<Clock />}
         label="Queued"

@@ -46,7 +46,9 @@ function QueueRow({ message, now }: { message: MessageDto; now: number }) {
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        {/* Visible by default; hidden-until-hover only where a real pointer
+            exists. Hover-gating alone made these unreachable on touch. */}
+        <div className="flex shrink-0 gap-1 transition-opacity focus-within:opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100">
           <Button
             variant="ghost"
             size="icon"

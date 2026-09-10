@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 /**
+ * Devices that genuinely have a hover-capable pointer. Used to reveal row
+ * actions on hover for mice while keeping them permanently visible on touch,
+ * where a hover state never arrives and the controls would be unreachable.
+ */
+@custom-variant pointer-fine (@media (hover: hover) and (pointer: fine));
+
+/**
  * Design tokens.
  *
  * The palette is Apple's own system colours -- the blue of an iMessage bubble,

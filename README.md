@@ -21,34 +21,75 @@ Browser ──REST + polling──▶ Server ──▶ Postgres  (the queue of r
 
 ## Quick start
 
-Prerequisites: **Node 22+**, **npm 10+**, **Docker** (or any local Postgres).
+Prerequisites: **Node 22+**, **npm 10+**, **Docker Desktop running**.
 
 ```bash
+git clone git@github.com:artvichi/send_blue_ta.git
+cd send_blue_ta
+
 npm install
-cp .env.example .env
+cp .env.example .env      # the defaults work as-is
 
-npm run db:up            # Postgres on :5433 via docker compose
-npm run db:migrate       # create the schema
-
-npm run dev              # api :4310 + web :4320
+npm run db:setup          # Postgres in Docker + schema + test database
+npm run dev               # api :4310, web :4320
 ```
 
-In a second terminal:
+Then in a second terminal:
 
 ```bash
-npm run gateway:mock     # simulated sending -- no Mac permissions needed
+npm run gateway:mock      # simulated sending, no macOS permissions needed
 ```
 
-Open **http://localhost:4320**, schedule a message, then set the send rate to
-**10s** on the Dashboard and watch the queue drain.
+Open **http://localhost:4320** — that is the UI. (`:4310` is the API; it serves
+JSON only.) Nothing drains without a gateway running, so start it too.
 
-> **Ports** are 4310 (API), 4320 (web), 5433 (Postgres) — deliberately off the
-> common 3000/4200/5432 defaults so the stack does not collide with whatever else
-> you have running locally.
+To watch the queue work, go to **Dashboard → Send rate → 10s**, then schedule a
+few messages on the Schedule page.
 
-> **Already running Postgres on 5432?** Compose deliberately uses **5433** to
-> avoid the clash. To use an existing local Postgres instead, point
-> `DATABASE_URL` at it and skip `npm run db:up`.
+### What each piece is
+
+| Process | Port | Notes |
+|---|---|---|
+| Web UI | **4320** | Vite dev server |
+| API | **4310** | Express; `/` describes itself |
+| Postgres | **5433** | Docker container `sbta-postgres` |
+| Gateway | — | dials out to the API; no port of its own |
+
+Ports are deliberately off the common 3000/4200/5432 defaults so the stack does
+not collide with whatever else you run locally. **5433** in particular avoids a
+Postgres you may already have on 5432 — this project never touches it.
+
+### Everything you can run
+
+```bash
+npm run dev            # api + web
+npm run dev:all        # api + web + gateway
+npm run gateway:mock   # gateway, simulated sending
+npm run gateway:real   # gateway, real iMessages (macOS only)
+npm run gateway:setup  # guided macOS permission setup
+
+npm run verify         # typecheck + lint + unit tests
+npm test               # unit tests
+npm run test:int       # integration tests (needs npm run db:setup first)
+npm run build          # build everything
+
+npm run db:up          # start Postgres
+npm run db:down        # stop it
+npm run db:setup       # start + migrate + create/migrate the test database
+npm run db:migrate     # apply migrations after a schema change
+npm run db:studio      # browse the data
+npm run db:seed        # a few sample messages
+```
+
+### Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| `localhost:4310` shows JSON, not the app | That is the API. The UI is **4320**. |
+| Queue never drains | No gateway running — start `npm run gateway:mock`. |
+| `npm run test:int` fails to connect | Run `npm run db:setup` first. |
+| `db:up` hangs or errors | Docker Desktop is not running. |
+| Port already in use | Something else holds 4310/4320/5433; change it in `.env`. |
 
 ### Sending real iMessages
 
@@ -86,7 +127,9 @@ docker compose -f docker-compose.yml -f docker-compose.full.yml up --build
 # web :4330, api :4310
 ```
 
-The gateway is still run natively — it needs macOS APIs and cannot be containerized.
+Migrations run as their own one-shot job before the API starts, so a fresh
+volume needs no manual step. The gateway is still run natively — it needs macOS
+APIs and cannot be containerized.
 
 ---
 
