@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
 import { CHAT_DB_PATH, queryChatDb } from './chatdb.js';
+import { logger } from './logger.js';
 import type { HostApp } from './host-app.js';
 
 export { detectHostApp, type HostApp } from './host-app.js';
@@ -27,16 +28,31 @@ export async function hasFullDiskAccess(): Promise<boolean> {
   }
 }
 
-/** The first attempt triggers the system consent dialog -- the happy path. */
+/**
+ * Whether AppleScript may drive Messages. The first attempt triggers the system
+ * consent dialog, which is the happy path.
+ *
+ * The probe asks for the application's own `version` -- a property that always
+ * exists. An earlier version asked for `name of first account`; accounts do not
+ * expose `name`, so it failed with -1728 on a perfectly authorised machine and
+ * the UI insisted the permission was missing. A probe must only be able to fail
+ * for the reason it is testing.
+ */
 export async function hasAutomationAccess(): Promise<boolean> {
   try {
-    await execFileAsync(
-      'osascript',
-      ['-e', 'tell application "Messages" to return name of first account'],
-      { timeout: 20_000 },
-    );
+    await execFileAsync('osascript', ['-e', 'tell application "Messages" to return version'], {
+      timeout: 20_000,
+    });
     return true;
-  } catch {
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    // -1743 is "Not authorized to send Apple events" -- the case we are testing.
+    // Anything else is logged rather than silently reported as denied.
+    if (!/-1743|not authori[sz]ed/i.test(detail)) {
+      logger.warn('automation probe failed for an unexpected reason', {
+        error: detail.split('\n')[0],
+      });
+    }
     return false;
   }
 }

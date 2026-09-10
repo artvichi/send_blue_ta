@@ -34,15 +34,8 @@ export function detectHostApp(): HostApp {
     const parent = Number(match[1]);
     const command = match[2] ?? '';
 
-    const app = /\/((?:[^/]+)\.app)\//.exec(command);
-    if (app?.[1]) {
-      const full = /^(.*?\.app)\//.exec(command)?.[1] ?? null;
-      return {
-        name: app[1].replace(/\.app$/, ''),
-        bundleId,
-        appPath: full,
-      };
-    }
+    const parsed = appFromCommand(command);
+    if (parsed) return { ...parsed, bundleId };
 
     if (parent <= 1) break;
     pid = parent;
@@ -54,4 +47,20 @@ export function detectHostApp(): HostApp {
   if (bundleId) return { name: bundleId, bundleId, appPath: null };
 
   return { name: 'your terminal application', bundleId: null, appPath: null };
+}
+
+/**
+ * The application a process path belongs to, or null if it is not inside a
+ * bundle. Split out from the ancestry walk so it can be tested against the real
+ * shapes macOS produces -- this is the piece that decides which name the user is
+ * told to tick, and naming the wrong one sends them to grant nothing.
+ *
+ * The first `.app` in the path wins deliberately: helper processes live inside
+ * their parent bundle (Orca.app/.../Orca Helper.app) and TCC attributes the
+ * permission to the outer application.
+ */
+export function appFromCommand(command: string): { name: string; appPath: string } | null {
+  const match = /^(.*?\/([^/]+)\.app)\//.exec(command);
+  if (!match?.[1] || !match?.[2]) return null;
+  return { name: match[2], appPath: match[1] };
 }
