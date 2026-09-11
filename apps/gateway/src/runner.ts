@@ -61,6 +61,12 @@ export class GatewayRunner {
           }
           await sleep(3000);
           await this.refreshCapabilities();
+
+          // Publish every blocked-state probe rather than waiting for the 15s
+          // heartbeat. This is the only state the dashboard actively watches --
+          // someone is sitting in System Settings waiting for the banner to
+          // clear -- and it is also when the gateway has nothing else to do.
+          await sendHeartbeat(this.driver.name, this.caps).catch(() => undefined);
           continue;
         }
 

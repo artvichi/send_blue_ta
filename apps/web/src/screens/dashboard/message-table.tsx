@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/status-badge';
 import { EmptyState } from '@/components/empty-state';
 import { formatCompactDateTime, formatPhone } from '@/lib/format';
-import { useMessages, useRetryMessage } from '../api';
+import { useMessages, useRetryMessage } from '@/api/messages';
 import type { StatusFilter } from './status-filter';
 import { MessageTimeline } from './message-timeline';
 

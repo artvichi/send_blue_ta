@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { formatCountdown, formatDateTime, formatPhone } from '@/lib/format';
-import { useCancelMessage, useQueue, useSendNow } from '../api';
+import { useCancelMessage, useQueue, useSendNow } from '@/api/messages';
 import { useNow } from '@/hooks/use-now';
 
 function QueueRow({ message, now }: { message: MessageDto; now: number }) {

@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { GatewayIndicator } from '@/features/dashboard/components/gateway-indicator';
+import { GatewayIndicator } from '@/components/gateway-indicator';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { PermissionBanner } from '@/components/permission-banner';
 

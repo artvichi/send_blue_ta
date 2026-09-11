@@ -1,6 +1,6 @@
-import { ComposeForm } from './components/compose-form';
-import { QueueList } from './components/queue-list';
-import { IntervalNotice } from '@/features/settings/interval-notice';
+import { ComposeForm } from './compose-form';
+import { QueueList } from './queue-list';
+import { IntervalNotice } from '@/components/interval-notice';
 
 export function SchedulerPage() {
   return (

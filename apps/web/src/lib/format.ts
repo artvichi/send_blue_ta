@@ -78,3 +78,24 @@ export function formatInterval(seconds: number): string {
   const rounded = Number.isInteger(h) ? h : h.toFixed(1);
   return `${rounded} hour${h === 1 ? '' : 's'}`;
 }
+
+/**
+ * The mirror of `formatCountdown`, for something that already happened:
+ * "just now", "8s ago", "3m ago".
+ *
+ * Used where a timestamp is evidence that something is still running -- a value
+ * that stops advancing is itself the signal.
+ */
+export function formatAgo(iso: string | null, now: number = Date.now()): string {
+  if (!iso) return 'never';
+  const seconds = Math.round((now - new Date(iso).getTime()) / 1000);
+  if (seconds < 2) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}

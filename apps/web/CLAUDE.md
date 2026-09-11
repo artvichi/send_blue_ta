@@ -6,7 +6,7 @@ React 19 + Vite + Tailwind v4 + shadcn-style primitives.
 
 - **Form validation uses the shared schema.** `createMessageSchema` from
   `@sb/shared` via `zodResolver`. Never redefine validation rules here.
-- **All query keys live in `lib/query-keys.ts`.** Never inline an array literal
+- **All query keys live in `api/keys.ts`.** Never inline an array literal
   in a `useQuery` call — invalidation silently stops matching.
 - **There is no WebSocket or SSE.** Server state is polled. If you add push,
   change it inside the query layer only.
@@ -20,10 +20,20 @@ React 19 + Vite + Tailwind v4 + shadcn-style primitives.
 
 ## Structure
 
-Feature-sliced: `features/<name>/{api.ts, components/, index.tsx}`. A new
-capability is a new folder, not edits scattered through shared files.
+Two axes, deliberately kept separate:
 
-`components/ui/` holds shadcn primitives; `components/` holds app-level composites.
+- **`api/` is split by domain**, mirroring `libs/shared/src/schemas/` —
+  `messages`, `settings`, `stats`, `gateway`, plus `client.ts` (transport) and
+  `keys.ts`. A hook goes in the module matching the *data* it touches, never the
+  screen that happens to call it. Components import from `@/api/<domain>`.
+- **`screens/` is split by route**, flat, one folder per page.
+
+`components/` is only for things used by more than one screen; `components/ui/`
+holds the shadcn primitives. A component used by exactly one screen lives beside
+it — promoting it early is what turns `components/` into a drawer.
+
+`hooks/` is for generic React hooks (`use-now`, `use-theme`). Data hooks belong
+in `api/`, not here.
 
 ## Theming
 

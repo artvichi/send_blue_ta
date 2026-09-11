@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { useScheduleMessage } from '../api';
+import { useScheduleMessage } from '@/api/messages';
 
 /**
  * The compose form.

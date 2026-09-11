@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { useGatewayHealth } from '../api';
+import { useGatewayHealth } from '@/api/gateway';
 
 /**
  * Whether a gateway is out there.

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { StatTiles } from './components/stat-tiles';
-import { ActivityChart } from './components/activity-chart';
-import { MessageTable } from './components/message-table';
-import { StatusFilterPills, type StatusFilter } from './components/status-filter';
-import { TableActions } from './components/table-actions';
-import { EmptyHistory } from './components/empty-history';
-import { useStats } from './api';
+import { StatTiles } from './stat-tiles';
+import { ActivityChart } from './activity-chart';
+import { MessageTable } from './message-table';
+import { StatusFilterPills, type StatusFilter } from './status-filter';
+import { TableActions } from './table-actions';
+import { EmptyHistory } from './empty-history';
+import { useStats } from '@/api/stats';
 
 export function DashboardPage() {
   const [filter, setFilter] = useState<StatusFilter>(undefined);

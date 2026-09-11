@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { api, ApiError } from '@/lib/api-client';
-import { queryKeys } from '@/lib/query-keys';
+import { api } from './client';
+import { queryKeys } from './keys';
+import { toastFailure } from './toast';
 
 export function useSettings() {
   return useQuery({ queryKey: queryKeys.settings, queryFn: api.getSettings });
@@ -18,11 +19,11 @@ export function useUpdateSettings() {
       void client.invalidateQueries({ queryKey: queryKeys.queue });
       void client.invalidateQueries({ queryKey: queryKeys.stats });
       toast.success(
-        settings.paused ? 'Queue paused' : `Sending one message every ${settings.sendIntervalSeconds}s`,
+        settings.paused
+          ? 'Queue paused'
+          : `Sending one message every ${settings.sendIntervalSeconds}s`,
       );
     },
-    onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Could not update settings');
-    },
+    onError: toastFailure('Could not update settings'),
   });
 }

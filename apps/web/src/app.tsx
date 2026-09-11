@@ -2,9 +2,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AppShell } from '@/components/app-shell';
-import { SchedulerPage } from '@/features/scheduler';
-import { DashboardPage } from '@/features/dashboard';
-import { SettingsPage } from '@/features/settings';
+import { SchedulerPage } from '@/screens/scheduler';
+import { DashboardPage } from '@/screens/dashboard';
+import { SettingsPage } from '@/screens/settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {

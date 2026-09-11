@@ -6,16 +6,36 @@ React 19 + Vite + TypeScript + Tailwind v4, with shadcn-style primitives.
 
 ```
 src/
-  features/
-    scheduler/   compose form + live queue   (the mockup screen)
-    dashboard/   tiles, table, timeline, health
-    settings/    send-rate control
-  components/ui/ shadcn primitives
-  lib/           api client, query keys, formatters
+  api/           the server boundary, split by domain
+    client.ts      HTTP transport + ApiError
+    keys.ts        every query key + poll rates
+    messages.ts    queue, history, schedule/cancel/send-now/retry/clear
+    settings.ts    read + patch the send rate and retry budget
+    stats.ts       tiles + activity chart
+    gateway.ts     health, and the permission re-check
+  screens/       one folder per route, flat
+    dashboard/     tiles, chart, table, timeline
+    scheduler/     compose form + live queue   (the mockup screen)
+    settings/      send-rate and retry controls
+  components/    shared across screens
+    ui/            shadcn primitives
+  hooks/         generic React hooks (clock, theme)
+  lib/           formatters, class helper
 ```
 
-Feature-sliced, so a new capability arrives as a new folder rather than as edits
-spread across shared files.
+**The data layer is split by domain, the view layer by screen.** These are two
+different axes and conflating them is what the earlier `features/<name>/api.ts`
+layout got wrong: message hooks lived in two folders (`useQueue` under
+scheduler, `useMessages` under dashboard) purely because of which screen needed
+them first, and three shared components had already reached across a "feature"
+boundary that was therefore fiction.
+
+`api/` mirrors `libs/shared/src/schemas/` one-for-one — message, settings, stats,
+gateway — so the same domain has the same name on both sides of the wire.
+
+A component earns a place in `components/` by being used from more than one
+screen. Everything else stays next to the screen that owns it, which is what
+keeps `components/` meaningful rather than a drawer.
 
 ## Server state
 

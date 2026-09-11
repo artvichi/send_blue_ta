@@ -1,7 +1,7 @@
 import { Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatInterval } from '@/lib/format';
-import { useSettings } from './api';
+import { useSettings } from '@/api/settings';
 
 /**
  * Explains the one thing about this screen that is otherwise invisible: there

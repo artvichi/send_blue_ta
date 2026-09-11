@@ -2,7 +2,7 @@ import { MESSAGE_STATUSES } from '@sb/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/status-badge';
 import { formatTime } from '@/lib/format';
-import { useMessageDetail } from '../api';
+import { useMessageDetail } from '@/api/messages';
 
 /**
  * The append-only event log for one message.

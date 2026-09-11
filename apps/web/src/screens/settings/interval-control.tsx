@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { formatInterval } from '@/lib/format';
-import { useSettings, useUpdateSettings } from './api';
+import { useSettings, useUpdateSettings } from '@/api/settings';
 
 /** Common rates, so a demo does not require typing seconds into a box. */
 const PRESETS = [

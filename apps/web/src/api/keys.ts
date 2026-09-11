@@ -18,5 +18,7 @@ export const POLL = {
   queue: 2000,
   stats: 3000,
   gateway: 5000,
+  /** While a permission is missing, the user is watching for it to clear. */
+  gatewayBlocked: 1500,
   detail: 2000,
 } as const;

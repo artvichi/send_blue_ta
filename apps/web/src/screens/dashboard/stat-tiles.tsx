@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatCountdown } from '@/lib/format';
-import { useStats } from '../api';
+import { useStats } from '@/api/stats';
 
 function Tile({
   icon,

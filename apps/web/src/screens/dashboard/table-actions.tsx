@@ -10,7 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useClearHistory, useStats } from '../api';
+import { useClearHistory } from '@/api/messages';
+import { useStats } from '@/api/stats';
 
 /**
  * Actions belonging to the table as a whole.

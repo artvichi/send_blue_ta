@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ACTIVITY_RANGES, type ActivityDto, type ActivityRange } from '@sb/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useActivity } from '../api';
+import { useActivity } from '@/api/stats';
 import { ActivityDonut } from './activity-donut';
 
 /**

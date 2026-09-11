@@ -2,7 +2,7 @@ import { RotateCw } from 'lucide-react';
 import { MAX_ATTEMPTS, MIN_ATTEMPTS } from '@sb/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSettings, useUpdateSettings } from './api';
+import { useSettings, useUpdateSettings } from '@/api/settings';
 
 /**
  * How many times a message is dispatched before it stays failed. There is no
