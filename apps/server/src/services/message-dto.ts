@@ -2,7 +2,7 @@ import type { MessageDto } from '@sb/shared';
 import { projectQueueEtas } from '@sb/shared';
 import type { Message } from '../db/generated/client.js';
 import { listQueued } from '../repositories/message-queue.js';
-import { queueState } from '../scheduler/ticker.js';
+import { queueState } from '../scheduler/queue-state.js';
 
 /** Where a queued message sits, and when it is projected to go out. */
 export type QueueProjection = Map<string, { position: number; etaAt: Date }>;

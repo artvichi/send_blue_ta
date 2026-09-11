@@ -6,7 +6,7 @@ import {
   revealHostApp,
   waitForPermission,
   type HostApp,
-} from './permissions.js';
+} from '../macos/permissions.js';
 
 /**
  * The guided permission setup.

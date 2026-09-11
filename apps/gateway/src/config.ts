@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -47,4 +48,7 @@ export function config(): GatewayConfig {
   return cached;
 }
 
-export const VERSION = '1.0.0';
+/** Reported in every heartbeat, so the dashboard can tell which build is talking. */
+export const VERSION: string = (
+  createRequire(import.meta.url)('../package.json') as { version: string }
+).version;

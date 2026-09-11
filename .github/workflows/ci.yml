@@ -72,3 +72,38 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Terraform is validated on the PR, not discovered broken after merge. No
+  # credentials: `init -backend=false` and `validate` need none.
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - run: terraform -chdir=infra fmt -check -recursive
+      - run: terraform -chdir=infra init -backend=false
+      - run: terraform -chdir=infra validate
+
+  # The images are what actually ships; a Dockerfile that no longer builds is a
+  # release failure waiting for main. Built, not pushed.
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

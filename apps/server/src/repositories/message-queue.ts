@@ -3,7 +3,7 @@ import { Prisma, type MessageStatus } from '../db/generated/client.js';
 import { prisma, type Db } from '../db/prisma.js';
 import type { SchedulingPolicy } from '../domain/policies/index.js';
 import { claimedRowSchema, type ClaimedRow } from './types.js';
-import { recordEvent } from './message-status.js';
+import { recordEvent } from './message-events.js';
 
 /** Columns are Prisma's camelCase defaults; the enum is a native Postgres type. */
 const STATUS = (s: MessageStatus) => Prisma.sql`${s}::"MessageStatus"`;

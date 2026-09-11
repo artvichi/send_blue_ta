@@ -1,6 +1,7 @@
 import { leaseSchema, type LeaseDto, type MessageStatus } from '@sb/shared';
-import { config, VERSION } from './config.js';
-import { logger } from './logger.js';
+import { config, VERSION } from '../config.js';
+import type { DriverCapabilities } from '../drivers/types.js';
+import { logger } from '../logger.js';
 
 export class ServerUnavailableError extends Error {}
 
@@ -89,9 +90,14 @@ export async function reportStatus(report: StatusReport): Promise<void> {
   logger.debug('status reported', { messageId: report.messageId, status: report.status });
 }
 
+/**
+ * Liveness plus what the driver can currently do. A null permission means the
+ * driver never needed it (the mock), and is sent as granted so the dashboard
+ * does not ask for something that does not apply.
+ */
 export async function sendHeartbeat(
   driver: string,
-  capabilities?: { ready: boolean; fullDiskAccess: boolean | null; automation: boolean | null; hostApp: string | null },
+  capabilities?: DriverCapabilities,
 ): Promise<void> {
   const response = await request('/api/gateway/heartbeat', {
     method: 'POST',

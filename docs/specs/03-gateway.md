@@ -40,11 +40,17 @@ Selected by `GATEWAY_DRIVER`. Both implement one interface:
 
 ```ts
 interface MessageDriver {
-  preflight(): Promise<void>;
+  capabilities(): Promise<DriverCapabilities>;   // reported, never thrown
   send(to, body): Promise<{ providerGuid, sentAt }>;
   watch(guid, onStatus): Unsubscribe;
 }
 ```
+
+`capabilities()` replaces an earlier `preflight()` that threw. Permissions are
+granted by a human at an unpredictable moment, so the gateway stays up,
+publishes what is missing through its heartbeat, re-probes every 3s while
+blocked, and starts claiming the instant both appear. The dashboard renders
+that state and offers a re-check that waits for a genuinely newer probe.
 
 ### `applescript` — the real one
 
@@ -108,8 +114,8 @@ Two are needed: **Full Disk Access** (to read `chat.db`) and **Automation** (to
 drive Messages via `osascript`).
 
 Neither can be granted programmatically — TCC exists precisely to require a
-human. So `permissions.ts` and `doctor.ts` automate everything *around* the
-click instead:
+human. So `macos/permissions.ts` and `cli/doctor.ts` automate everything
+*around* the click instead:
 
 **Naming the right application.** TCC attributes a child process's access to the
 *responsible* application, so adding `node` to Full Disk Access does nothing;
@@ -127,10 +133,36 @@ process and sometimes does not, depending on when TCC last cached the decision.
 Rather than asking the user to guess whether a restart is needed, the doctor
 polls the real check — reading `chat.db` — and reports the moment it succeeds.
 
-`gateway:real` runs the same check in `preflight()` and hands off to the guided
-flow when something is missing, so it self-heals rather than failing at 3am on
-the first real send.
+`gateway:real` runs the same checks through `capabilities()` and keeps running
+while something is missing, so it self-heals rather than failing at 3am on the
+first real send.
 
 Guiding is skipped when `CI` is set (or `SBTA_NO_GUIDE=1`) — deliberately not a
 TTY check, since task runners pipe stdout and would silently downgrade the
 guided flow to a wall of text at exactly the moment it is most useful.
+
+## Layout
+
+```
+src/
+  main.ts          start; SIGTERM finishes the current send, then exits (10s cap)
+  config.ts        env schema, VERSION from package.json
+  runner/          createRunner (loop + heartbeat), handleLease, createWatchers
+  server/          client.ts -- the only HTTP to the server
+  drivers/         applescript, mock
+  macos/           chat.db, permissions, host app detection, Apple timestamps
+  cli/             the guided permission setup
+  launchd/         LaunchAgent template
+```
+
+No classes: long-lived state lives in `create*()` closures, matching the server.
+`handleLease` takes its dependencies as arguments, which is what lets the
+double-send guard be unit-tested against a fake driver without a Mac.
+
+## Running it as a service
+
+`npm run gateway:install` builds the bundle and installs a user LaunchAgent that
+starts at login, restarts on crash, and stops cleanly on SIGTERM. Under launchd
+there is no terminal application to hold the TCC grants, so Full Disk Access and
+Automation are granted to the `node` binary itself; the script prints the path,
+and the dashboard banner shows what is still missing.

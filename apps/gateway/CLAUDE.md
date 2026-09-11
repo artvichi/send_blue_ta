@@ -15,9 +15,34 @@ signed-in Apple account, and read access to `chat.db`.
   recent writes.
 - **Apple timestamps are nanoseconds since 2001-01-01**, not Unix:
   `unix = appleNs / 1e9 + 978307200`. Getting this wrong shifts everything by 31 years.
-- **`preflight()` must fail loudly and actionably.** Both failure modes need a
-  human to click something in System Settings; say which.
+- **`capabilities()` reports, it never throws.** The permissions are granted by
+  a human at an unpredictable moment; the gateway stays up, publishes what is
+  missing through the heartbeat, and starts claiming when both appear.
 - **Never log message bodies.**
+- **No classes.** Modules export functions; long-lived state lives in a
+  `create*()` closure (`createRunner`, `createWatchers`, `createDriver`), the
+  same shape the server uses. Error subclasses are the one exception -- that is
+  how `instanceof` works.
+
+## Structure
+
+```
+src/
+  main.ts            start, and a bounded graceful shutdown
+  config.ts          env schema; VERSION from package.json
+  runner/            the loop
+    index.ts           createRunner: claim -> handleLease, heartbeat, blocked-state probing
+    lease.ts           one lease: ack, double-send guard, send, hand to watchers
+    watchers.ts        background delivery watchers, cancellable on shutdown
+  server/client.ts   the only place that talks HTTP to the server
+  drivers/           MessageDriver implementations: applescript, mock
+  macos/             everything platform-specific: chat.db, permissions, host app, Apple time
+  cli/               gateway:setup -- the guided permission doctor
+  launchd/           the LaunchAgent template installed by scripts/gateway-install.sh
+```
+
+`runner/lease.ts` takes its dependencies as arguments so the double-send guard
+is unit-tested against a fake driver (`lease.spec.ts`). Keep it that way.
 
 ## Drivers
 
@@ -38,7 +63,10 @@ Both belong to the *application hosting the terminal*, never to `node`. That is
 what `detectHostApp()` exists to work out, and getting it wrong sends the user to
 tick a box that grants nothing.
 
-`npm run gateway:setup` runs the guided flow; `preflight()` calls the same doctor
-so `gateway:real` self-heals. Guiding is gated on `CI`, not on `isTTY` — task
-runners pipe stdout, and a TTY check silently disables the guidance exactly when
-it is needed.
+`npm run gateway:setup` runs the guided flow. Guiding is gated on `CI`, not on
+`isTTY` — task runners pipe stdout, and a TTY check silently disables the
+guidance exactly when it is needed.
+
+Under launchd (`npm run gateway:install`) there is no terminal app, so the
+grants belong to the `node` binary itself — the one case where "add node" is
+the right instruction. The install script prints the exact path.

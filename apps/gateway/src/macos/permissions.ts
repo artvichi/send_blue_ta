@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
 import { CHAT_DB_PATH, queryChatDb } from './chatdb.js';
-import { logger } from './logger.js';
+import { logger } from '../logger.js';
 import type { HostApp } from './host-app.js';
 
 export { detectHostApp, type HostApp } from './host-app.js';

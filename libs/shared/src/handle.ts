@@ -29,6 +29,12 @@ export function parseHandle(input: string): HandleParseResult {
     return { ok: true, handle, kind: 'email', display: handle, valid: true };
   }
 
+  // No digits at all is not a phone number with a typo; it is the wrong kind
+  // of input, and the message should say what kinds there are.
+  if (!/\d/.test(trimmed)) {
+    return { ok: false, reason: 'Enter a phone number or an Apple ID email' };
+  }
+
   const phone = parsePhone(trimmed);
   if (!phone.ok) return { ok: false, reason: phone.reason };
   return {

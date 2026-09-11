@@ -2,14 +2,10 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import {
-  ChatDbAccessError,
-  appleTimeToDate,
-  findSentMessage,
-  getMessageState,
-} from '../chatdb.js';
-import { hasAutomationAccess, hasFullDiskAccess } from '../permissions.js';
-import { detectHostApp } from '../host-app.js';
+import { ChatDbAccessError, findSentMessage, getMessageState } from '../macos/chatdb.js';
+import { appleTimeToDate } from '../macos/apple-time.js';
+import { hasAutomationAccess, hasFullDiskAccess } from '../macos/permissions.js';
+import { detectHostApp } from '../macos/host-app.js';
 import type { MessageDriver, StatusEvent, Unsubscribe } from './types.js';
 
 const execFileAsync = promisify(execFile);

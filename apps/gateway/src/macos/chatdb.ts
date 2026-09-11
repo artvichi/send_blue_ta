@@ -9,9 +9,14 @@ import { dateToAppleNs, sqlLiteral } from './apple-time.js';
 
 const execFileAsync = promisify(execFile);
 
-export { appleTimeToDate, dateToAppleNs, sqlLiteral } from './apple-time.js';
-
 export const CHAT_DB_PATH = join(homedir(), 'Library', 'Messages', 'chat.db');
+
+/** Every column the driver reads, joined to the recipient handle. */
+const MESSAGE_SELECT = `
+    SELECT m.guid, m.text, h.id AS handle, m.is_from_me, m.is_sent,
+           m.is_delivered, m.is_read, m.date, m.date_delivered, m.date_read, m.error
+    FROM message m
+    LEFT JOIN handle h ON m.handle_id = h.ROWID`;
 
 export interface ChatDbRow {
   guid: string;
@@ -92,10 +97,7 @@ export async function findSentMessage(
   const since = Math.floor(dateToAppleNs(sentAfter));
 
   const sql = `
-    SELECT m.guid, m.text, h.id AS handle, m.is_from_me, m.is_sent,
-           m.is_delivered, m.is_read, m.date, m.date_delivered, m.date_read, m.error
-    FROM message m
-    LEFT JOIN handle h ON m.handle_id = h.ROWID
+    ${MESSAGE_SELECT}
     WHERE m.is_from_me = 1
       AND m.date >= ${since}
       AND ${handleMatchSql(toHandle)}
@@ -118,7 +120,7 @@ export async function findSentMessage(
  * (206) ..., 206-... -- so those are compared on their last ten digits after
  * stripping punctuation.
  */
-function handleMatchSql(toHandle: string): string {
+export function handleMatchSql(toHandle: string): string {
   if (toHandle.includes('@')) {
     return `LOWER(COALESCE(h.id,'')) = ${sqlLiteral(toHandle.toLowerCase())}`;
   }
@@ -131,10 +133,7 @@ function handleMatchSql(toHandle: string): string {
 /** Current delivery state of one message, by GUID. */
 export async function getMessageState(guid: string): Promise<ChatDbRow | null> {
   const sql = `
-    SELECT m.guid, m.text, h.id AS handle, m.is_from_me, m.is_sent,
-           m.is_delivered, m.is_read, m.date, m.date_delivered, m.date_read, m.error
-    FROM message m
-    LEFT JOIN handle h ON m.handle_id = h.ROWID
+    ${MESSAGE_SELECT}
     WHERE m.guid = ${sqlLiteral(guid)}
     LIMIT 1;
   `;

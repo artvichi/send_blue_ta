@@ -10,7 +10,7 @@ import { logger } from '../../config/logger.js';
 import { prisma } from '../../db/prisma.js';
 import { claimNextMessage, hasForcedMessage } from '../../repositories/message-queue.js';
 import { applyStatusReport } from '../../repositories/message-status.js';
-import { queueState } from '../../scheduler/ticker.js';
+import { queueState } from '../../scheduler/queue-state.js';
 
 export const gatewayRouter = Router();
 

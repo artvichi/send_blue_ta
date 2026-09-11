@@ -71,6 +71,7 @@ npm run dev:all        # api + web + gateway
 npm run gateway:mock   # gateway, simulated sending
 npm run gateway:real   # gateway, real iMessages (macOS only)
 npm run gateway:setup  # guided macOS permission setup
+npm run gateway:install # run the gateway as a login service on this Mac
 
 npm run verify         # typecheck + lint + unit tests
 npm test               # unit tests
@@ -120,9 +121,17 @@ What `gateway:setup` removes is the guesswork around the click:
 - **It watches for the grant to land** and tells you the moment it does, instead
   of leaving you to guess whether a restart was needed.
 
-`gateway:real` runs the same check on startup, so it self-heals rather than
+`gateway:real` keeps re-checking while it runs, and the dashboard shows a banner
+with a re-check button until both are granted, so it self-heals rather than
 failing on the first real send. Everything works without either permission using
 `npm run gateway:mock`.
+
+To keep the gateway running on a Mac after you close the terminal:
+
+```bash
+npm run gateway:install    # login service via launchd; logs in ~/Library/Logs/sbta-gateway.log
+npm run gateway:uninstall
+```
 
 ### Everything in containers
 

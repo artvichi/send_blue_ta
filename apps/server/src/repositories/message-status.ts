@@ -3,6 +3,7 @@ import { prisma, type Db } from '../db/prisma.js';
 import { canTransition, isTerminal } from '@sb/shared';
 import type { ApplyStatusInput, ApplyStatusResult } from './types.js';
 import { getSettings } from './settings.js';
+import { recordEvent } from './message-events.js';
 
 /**
  * Apply a gateway status report. Three guards, because reports arrive
@@ -108,24 +109,6 @@ export async function applyStatusReport(
     return { outcome: 'applied', status: input.status } as const;
   });
 }
-
-/** Append to the audit log; a duplicate report collides and is dropped. */
-export async function recordEvent(
-  messageId: string,
-  status: MessageStatus,
-  occurredAt: Date,
-  detail: Prisma.InputJsonValue | null,
-  db: Db = prisma,
-): Promise<void> {
-  await db.messageEvent.createMany({
-    data: [{ messageId, status, occurredAt, ...(detail ? { detail } : {}) }],
-    skipDuplicates: true,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Queue reads and mutations
-// ---------------------------------------------------------------------------
 
 const TIMESTAMP_FIELD: Partial<Record<MessageStatus, 'sentAt' | 'deliveredAt' | 'receivedAt'>> = {
   SENT: 'sentAt',

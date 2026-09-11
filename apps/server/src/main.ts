@@ -2,7 +2,7 @@ import { createApp } from './http/app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { prisma } from './db/prisma.js';
-import { scheduler } from './scheduler/ticker.js';
+import { startReaper } from './scheduler/reaper.js';
 import { getSettings } from './repositories/settings.js';
 
 async function main(): Promise<void> {
@@ -26,11 +26,11 @@ async function main(): Promise<void> {
     );
   });
 
-  scheduler.start();
+  const reaper = startReaper();
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'shutting down');
-    scheduler.stop();
+    reaper.stop();
     server.close();
     await prisma.$disconnect();
     process.exit(0);

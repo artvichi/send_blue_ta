@@ -31,10 +31,14 @@ layout the built server fails at *startup*, not at build time.
 
 ## CI (`.github/workflows/ci.yml`)
 
-On every pull request: install with an npm cache → typecheck → lint → unit tests
-→ integration tests against a Postgres **service container** → build.
+On every pull request, three jobs in parallel:
 
-Nx caching means only affected projects rebuild.
+- **verify** — install with an npm cache → typecheck → lint → unit tests →
+  integration tests against a Postgres **service container** → build.
+- **infra** — `terraform fmt -check`, `init -backend=false`, `validate`. No
+  credentials needed, so a broken module is caught on the PR, not after merge.
+- **images** — both Dockerfiles are built (not pushed) with a GitHub Actions
+  layer cache, so a Dockerfile that no longer builds cannot reach `main`.
 
 ## Release (`.github/workflows/release.yml`)
 
@@ -58,6 +62,10 @@ Remote state in S3 with a DynamoDB lock table. Modules:
 
 It needs a signed-in macOS Messages account, so it lives on a Mac: a Mac mini
 on-prem, MacStadium, or an EC2 `mac2.metal` instance.
+
+On that Mac it runs as a user LaunchAgent (`npm run gateway:install`): starts
+at login, restarts on crash, and gets a SIGTERM it uses to finish the send in
+progress before exiting. Logs go to `~/Library/Logs/sbta-gateway.log`.
 
 This is where the transport decision pays off. Because the gateway **dials out**,
 it works from anywhere with outbound HTTPS — no inbound security-group rules, no

@@ -3,7 +3,7 @@ import { prisma } from '../db/prisma.js';
 import type { Message, MessageEvent, MessageStatus } from '../db/generated/client.js';
 import { queueProjection, toDto } from './message-dto.js';
 import { countsByStatus, findMessage } from '../repositories/messages.js';
-import { queueState } from '../scheduler/ticker.js';
+import { queueState } from '../scheduler/queue-state.js';
 
 export interface ListOptions {
   status?: MessageStatus | undefined;

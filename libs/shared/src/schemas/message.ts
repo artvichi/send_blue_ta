@@ -4,10 +4,12 @@ import { MAX_BODY_LENGTH, messageStatusSchema } from './common.js';
 
 /** Fed to zodResolver in the browser and to validation on the server, so the two cannot drift. */
 export const createMessageSchema = z.object({
-  to: z
-    .string()
-    .min(1, 'Enter a phone number or email')
-    .refine((v) => parseHandle(v).ok, 'Enter a valid phone number or Apple ID email'),
+  // `parseHandle` already knows *why* a recipient is unusable -- wrong length,
+  // malformed address -- so the form shows that rather than one generic line.
+  to: z.string().superRefine((value, ctx) => {
+    const parsed = parseHandle(value);
+    if (!parsed.ok) ctx.addIssue({ code: 'custom', message: parsed.reason });
+  }),
   body: z
     .string()
     .trim()

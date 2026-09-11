@@ -5,12 +5,14 @@ Express + Prisma over Postgres. Owns the queue and all durable state.
 ## Structure
 
 `config/` env + logger · `db/` Prisma client · `domain/` pure policies ·
-`scheduler/` rate limiter + reaper · `http/` routes and middleware
+`scheduler/` rate limiter, `queue-state.ts` (is the queue due?), `reaper.ts`
+(the only timer) · `http/` routes and middleware
 
 `repositories/` splits by responsibility rather than by table:
 `message-queue.ts` (claim, lease, reap, queue reads), `message-status.ts`
-(applying gateway reports, the audit log), `messages.ts` (create, cancel, retry,
-read), `settings.ts`, and `types.ts` for the shapes they return.
+(applying a gateway report: the three guards and the retry budget),
+`message-events.ts` (the append-only audit log), `messages.ts` (create, cancel,
+retry, clear, read), `settings.ts`, and `types.ts` for the shapes they return.
 
 `services/` holds the read models: `message-dto.ts` is the pure shaping layer
 (queue projection, row-to-DTO), `messages.ts` the queries.
@@ -30,6 +32,9 @@ read), `settings.ts`, and `types.ts` for the shapes they return.
   becomes a response body.
 - Use `pathParam(req, 'id')` rather than `req.params.id`; Express 5 types params
   as possibly an array.
+- **No classes.** Long-lived things are `start*()`/`create*()` functions
+  returning a handle (`startReaper()`, `createApp()`). `HttpError` is the one
+  exception because `instanceof` is how the error handler recognises it.
 
 ## Prisma 7
 

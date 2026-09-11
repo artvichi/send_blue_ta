@@ -1,7 +1,7 @@
 import type { MessageStatus } from '../db/generated/client.js';
 import { prisma, type Db } from '../db/prisma.js';
 import { canTransition } from '@sb/shared';
-import { recordEvent } from './message-status.js';
+import { recordEvent } from './message-events.js';
 
 export async function createMessage(toHandle: string, body: string, db: Db = prisma) {
   const message = await db.message.create({ data: { toHandle, body } });
