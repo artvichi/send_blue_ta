@@ -6,9 +6,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { formatCountdown, formatDateTime, formatPhone } from '@/lib/format';
 import { useCancelMessage, useQueue, useSendNow } from '@/api/messages';
+import { useSettings } from '@/api/settings';
 import { useNow } from '@/hooks/use-now';
 
-function QueueRow({ message, now }: { message: MessageDto; now: number }) {
+function QueueRow({ message, now, paused }: { message: MessageDto; now: number; paused: boolean }) {
   const cancel = useCancelMessage();
   const sendNow = useSendNow();
   const isNext = message.position === 0;
@@ -45,9 +46,17 @@ function QueueRow({ message, now }: { message: MessageDto; now: number }) {
               <Clock className="size-3.5" />
               <span className="tabular-nums">{formatDateTime(message.etaAt)}</span>
             </span>
-            <span className="tabular-nums font-medium text-brand">
-              {formatCountdown(message.etaAt, now)}
-            </span>
+            {/* A countdown on a paused queue reads as a broken one: the time
+                shown is when it would go if resumed now, so say "paused". */}
+            {paused ? (
+              <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn">
+                Paused
+              </span>
+            ) : (
+              <span className="tabular-nums font-medium text-brand">
+                {formatCountdown(message.etaAt, now)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -82,7 +91,9 @@ function QueueRow({ message, now }: { message: MessageDto; now: number }) {
 
 export function QueueList() {
   const { data, isPending, isError } = useQueue();
+  const { data: settings } = useSettings();
   const now = useNow();
+  const paused = settings?.paused ?? false;
 
   if (isPending) {
     return (
@@ -125,7 +136,7 @@ export function QueueList() {
       ) : (
         <div className="flex flex-col gap-3">
           {items.map((message) => (
-            <QueueRow key={message.id} message={message} now={now} />
+            <QueueRow key={message.id} message={message} now={now} paused={paused} />
           ))}
         </div>
       )}
