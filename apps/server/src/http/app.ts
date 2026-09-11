@@ -6,6 +6,7 @@ import { env } from '../config/env.js';
 import { messagesRouter } from './routes/messages.js';
 import { gatewayRouter } from './routes/gateway.js';
 import { settingsRouter } from './routes/settings.js';
+import { recipientsRouter } from './routes/recipients.js';
 import { systemRouter } from './routes/system.js';
 import { healthRouter } from './routes/health.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
@@ -45,6 +46,7 @@ export function createApp(): Express {
   app.use('/api/gateway', gatewayRouter);
   app.use('/api/messages', messagesRouter);
   app.use('/api/settings', settingsRouter);
+  app.use('/api/recipients', recipientsRouter);
   app.use('/api', systemRouter);
 
   app.use(notFoundHandler);

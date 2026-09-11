@@ -1,9 +1,10 @@
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
+import { useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Loader2 } from 'lucide-react';
 import { createMessageSchema, MAX_BODY_LENGTH, type CreateMessageInput } from '@sb/shared';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { RecipientPicker } from '@/components/recipient-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -21,16 +22,18 @@ import { useScheduleMessage } from '@/api/messages';
  */
 export function ComposeForm() {
   const schedule = useScheduleMessage();
+  const [params] = useSearchParams();
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     watch,
     formState: { errors },
   } = useForm<CreateMessageInput>({
     resolver: zodResolver(createMessageSchema),
-    defaultValues: { to: '', body: '' },
+    defaultValues: { to: params.get('to') ?? '', body: '' },
   });
 
   const body = watch('body') ?? '';
@@ -44,16 +47,20 @@ export function ComposeForm() {
     <Card className="p-6 sm:p-8">
       <form onSubmit={onSubmit} className="flex flex-col gap-6" noValidate>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="to">Phone number or email</Label>
-          <Input
-            id="to"
-            type="text"
-            inputMode="text"
-            autoComplete="tel"
-            placeholder="+1 (555) 000-0000  ·  name@icloud.com"
-            aria-invalid={!!errors.to}
-            aria-describedby={errors.to ? 'to-error' : undefined}
-            {...register('to')}
+          <Label htmlFor="to">Recipient</Label>
+          <Controller
+            control={control}
+            name="to"
+            render={({ field }) => (
+              <RecipientPicker
+                id="to"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                invalid={!!errors.to}
+                describedBy={errors.to ? 'to-error' : undefined}
+              />
+            )}
           />
           {errors.to && (
             <p id="to-error" role="alert" className="text-sm text-bad">

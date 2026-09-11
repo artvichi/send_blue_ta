@@ -3,6 +3,7 @@ import { prisma } from '../db/prisma.js';
 import type { Message, MessageEvent, MessageStatus } from '../db/generated/client.js';
 import { queueProjection, toDto } from './message-dto.js';
 import { countsByStatus, findMessage } from '../repositories/messages.js';
+import { namesByHandle } from '../repositories/recipients.js';
 import { queueState } from '../scheduler/queue-state.js';
 
 export interface ListOptions {
@@ -23,9 +24,10 @@ export async function listMessages(options: ListOptions) {
 
   const hasMore = messages.length > options.limit;
   const page = hasMore ? messages.slice(0, options.limit) : messages;
+  const names = await namesByHandle(page.map((m) => m.toHandle));
 
   return {
-    items: page.map((m) => toDto(m, projection)),
+    items: page.map((m) => toDto(m, projection, names)),
     nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null,
   };
 }
@@ -46,7 +48,8 @@ export async function listQueue(limit: number) {
     take: limit,
   });
 
-  return { items: messages.map((m) => toDto(m, projection)), nextCursor: null };
+  const names = await namesByHandle(messages.map((m) => m.toHandle));
+  return { items: messages.map((m) => toDto(m, projection, names)), nextCursor: null };
 }
 
 export async function getMessageDetail(id: string): Promise<MessageDetailDto | null> {
@@ -54,10 +57,11 @@ export async function getMessageDetail(id: string): Promise<MessageDetailDto | n
   if (!message) return null;
 
   const projection = await queueProjection();
+  const names = await namesByHandle([message.toHandle]);
   const events = (message as Message & { events: MessageEvent[] }).events;
 
   return {
-    ...toDto(message, projection),
+    ...toDto(message, projection, names),
     events: events.map((e) => ({
       id: e.id,
       status: e.status,

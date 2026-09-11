@@ -27,12 +27,17 @@ export async function queueProjection(): Promise<QueueProjection> {
   return projection;
 }
 
-export function toDto(message: Message, projection: QueueProjection): MessageDto {
+export function toDto(
+  message: Message,
+  projection: QueueProjection,
+  names: Map<string, string> = new Map(),
+): MessageDto {
   const projected = projection.get(message.id);
   return {
     id: message.id,
     queueSeq: message.queueSeq.toString(),
     to: message.toHandle,
+    recipientName: names.get(message.toHandle) ?? null,
     body: message.body,
     status: message.status,
     attempts: message.attempts,

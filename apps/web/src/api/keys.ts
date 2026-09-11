@@ -11,6 +11,7 @@ export const queryKeys = {
   activity: (range: string) => ['stats', 'activity', range] as const,
   settings: ['settings'] as const,
   gateway: ['gateway', 'health'] as const,
+  recipients: (q?: string) => ['recipients', q ?? ''] as const,
 };
 
 /** The queue is what people watch drain; settings change only on demand. */

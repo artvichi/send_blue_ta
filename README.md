@@ -133,6 +133,18 @@ npm run gateway:install    # login service via launchd; logs in ~/Library/Logs/s
 npm run gateway:uninstall
 ```
 
+### Recipients
+
+The **Recipients** tab is an address book: a name for each number or Apple ID
+email. The compose field searches it as you type and fills in the handle when
+you pick someone.
+
+The key is the handle itself — normalized exactly as a message's recipient is
+(`+12063456789`, `name@icloud.com`) and unique. A message joins to its recipient
+by that string at read time, so there is no foreign key to keep in sync:
+adding a name after the fact labels the whole history, and deleting one only
+forgets the name.
+
 ### Everything in containers
 
 ```bash

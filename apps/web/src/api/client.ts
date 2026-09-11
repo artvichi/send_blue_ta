@@ -1,4 +1,5 @@
 import type {
+  RecipientDto,
   ActivityDto,
   GatewayHealthDto,
   MessageDetailDto,
@@ -30,7 +31,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
     });
   } catch {
-    throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Is it running on port 3000?');
+    throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Is it running on port 4310?');
   }
 
   if (response.status === 204) return undefined as T;
@@ -100,4 +101,15 @@ export const api = {
     }),
 
   getGatewayHealth: () => request<GatewayHealthDto>('/api/system/gateway'),
+
+  listRecipients: (q?: string) =>
+    request<{ items: RecipientDto[] }>(
+      `/api/recipients${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+    ),
+  createRecipient: (input: { name: string; to: string }) =>
+    request<RecipientDto>('/api/recipients', { method: 'POST', body: JSON.stringify(input) }),
+  updateRecipient: ({ id, ...patch }: { id: string; name?: string; to?: string }) =>
+    request<RecipientDto>(`/api/recipients/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteRecipient: (id: string) =>
+    request<void>(`/api/recipients/${id}`, { method: 'DELETE' }),
 };

@@ -13,11 +13,14 @@ src/
     settings.ts    read + patch the send rate and retry budget
     stats.ts       tiles + activity chart
     gateway.ts     health, and the permission re-check
+    recipients.ts  the address book
   screens/       one folder per route, flat
     dashboard/     tiles, chart, table, timeline
     scheduler/     compose form + live queue   (the mockup screen)
+    recipients/    the address book
     settings/      send-rate and retry controls
   components/    shared across screens
+    recipient-picker.tsx   the compose field: searches recipients as you type
     ui/            shadcn primitives
   hooks/         generic React hooks (clock, theme)
   lib/           formatters, class helper

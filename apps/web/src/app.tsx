@@ -5,6 +5,7 @@ import { AppShell } from '@/components/app-shell';
 import { SchedulerPage } from '@/screens/scheduler';
 import { DashboardPage } from '@/screens/dashboard';
 import { SettingsPage } from '@/screens/settings';
+import { RecipientsPage } from '@/screens/recipients';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ export function App() {
           <Route element={<AppShell />}>
             <Route index element={<DashboardPage />} />
             <Route path="schedule" element={<SchedulerPage />} />
+            <Route path="recipients" element={<RecipientsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* The dashboard used to live here; keep old links working. */}
             <Route path="dashboard" element={<Navigate to="/" replace />} />

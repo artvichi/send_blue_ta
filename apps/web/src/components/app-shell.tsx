@@ -8,6 +8,7 @@ import { PermissionBanner } from '@/components/permission-banner';
 const NAV = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/schedule', label: 'Schedule', end: false },
+  { to: '/recipients', label: 'Recipients', end: false },
   { to: '/settings', label: 'Settings', end: false },
 ];
 

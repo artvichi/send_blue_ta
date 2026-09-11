@@ -25,7 +25,12 @@ function QueueRow({ message, now }: { message: MessageDto; now: number }) {
 
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="font-medium tracking-tight text-ink">{formatPhone(message.to)}</span>
+            <span className="font-medium tracking-tight text-ink">
+              {message.recipientName ?? formatPhone(message.to)}
+            </span>
+            {message.recipientName && (
+              <span className="text-sm tabular-nums text-ink-mute">{formatPhone(message.to)}</span>
+            )}
             {isNext && (
               <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">
                 Next
@@ -94,7 +99,7 @@ export function QueueList() {
       <EmptyState
         icon={<Inbox />}
         title="Cannot reach the server"
-        description="Check that the API is running on port 3000, then this will refresh on its own."
+        description="Check that the API is running on port 4310, then this will refresh on its own."
       />
     );
   }

@@ -20,6 +20,7 @@ healthRouter.get('/', (_req, res) => {
       health: ['/healthz', '/readyz'],
       messages: ['/api/messages', '/api/messages/queue', '/api/messages/:id'],
       settings: '/api/settings',
+      recipients: '/api/recipients',
       stats: '/api/stats',
       gatewayHealth: '/api/system/gateway',
       gatewayProtocol: '/api/gateway/* (bearer token required)',

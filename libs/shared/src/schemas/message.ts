@@ -40,6 +40,8 @@ export const messageSchema = z.object({
   id: z.string(),
   queueSeq: z.string(),
   to: z.string(),
+  /** From the address book, matched on the normalized handle; null if unknown. */
+  recipientName: z.string().nullable(),
   body: z.string(),
   status: messageStatusSchema,
   attempts: z.number(),

@@ -56,8 +56,17 @@ export function MessageTable({ filter }: { filter: StatusFilter }) {
                       onClick={() => setExpanded(expanded === message.id ? null : message.id)}
                       className="cursor-pointer border-b border-rule-soft last:border-0 hover:bg-sunk/60"
                     >
-                      <td className="whitespace-nowrap px-4 py-3 font-medium tabular-nums">
-                        {formatPhone(message.to)}
+                      <td className="whitespace-nowrap px-4 py-3">
+                        {message.recipientName ? (
+                          <>
+                            <span className="block font-medium">{message.recipientName}</span>
+                            <span className="block text-xs tabular-nums text-ink-mute">
+                              {formatPhone(message.to)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-medium tabular-nums">{formatPhone(message.to)}</span>
+                        )}
                       </td>
                       <td className="max-w-[280px] truncate px-4 py-3 text-ink-soft">
                         {message.body}

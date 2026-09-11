@@ -16,6 +16,9 @@ React 19 + Vite + Tailwind v4 + shadcn-style primitives.
 - **No date picker.** The mockup has none, and send times are derived from queue
   position. `IntervalNotice` explains this to the user; keep that explanation.
 - **Status is never colour alone.** Dot + label + border.
+- **The recipient field always holds a plain handle.** `RecipientPicker` is a
+  convenience over the input, not a new data path: choosing a name writes the
+  handle into the form, and the form submits what it always did.
 - **Wide content scrolls inside its own container**, never the page body.
 
 ## Structure

@@ -137,3 +137,12 @@ limiter, so a probe can never be throttled.
 Helmet, a CORS allowlist, rate limiting on public routes, Zod validation at every
 boundary, and constant-time token comparison. **Message bodies are never
 logged** — they are personal data, and the logger redacts them explicitly.
+
+## Recipients
+
+`recipients(id, name, handle UNIQUE)`. The handle is the identity, normalized by
+the same `parseHandle` as `messages.toHandle`, so the two tables meet on one
+string and nothing has to be kept in sync. Message DTOs carry `recipientName`,
+looked up in one `WHERE handle IN (...)` per page; deleting a recipient forgets
+the name and touches no message. `GET /api/recipients?q=` searches name and
+handle, which is what the compose field's picker calls as you type.

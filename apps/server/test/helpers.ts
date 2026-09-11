@@ -16,7 +16,7 @@ export const db = new PrismaClient({ adapter: new PrismaPg({ connectionString })
 
 export async function resetDatabase(): Promise<void> {
   await db.$executeRawUnsafe(
-    'TRUNCATE message_events, messages, gateway_heartbeats RESTART IDENTITY CASCADE',
+    'TRUNCATE message_events, messages, gateway_heartbeats, recipients RESTART IDENTITY CASCADE',
   );
   await db.setting.deleteMany({});
 }

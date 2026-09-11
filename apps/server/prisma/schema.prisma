@@ -160,3 +160,18 @@ model GatewayHeartbeat {
 
   @@map("gateway_heartbeats")
 }
+
+/// The address book. `handle` is the identity: normalized exactly like
+/// `Message.toHandle`, so a message joins to its recipient by that string alone
+/// and nothing has to be kept in sync -- delete a recipient and its history
+/// simply loses the name, never the messages.
+model Recipient {
+  id        String   @id @default(uuid())
+  name      String
+  handle    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@map("recipients")
+}
