@@ -1,12 +1,3 @@
-```text
-                                                                  _
-                                                              _,-' |
-                                                          _,-'    /
-   · · · · · · · · · · · · · · · · · · · · · · · · ·  _,-'      /
-                                                       `-._    /
-                                                           `-._/
-```
-
 # iMessage Scheduler
 
 Queue iMessages in a browser; a backend sends them **one per hour** (configurable)
