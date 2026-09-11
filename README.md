@@ -1,385 +1,160 @@
 # iMessage Scheduler
 
-A browser UI queues iMessages, a backend drains them **FIFO at one per hour**
-(configurable), and a **macOS gateway** sends them through Messages.app and
-reports real delivery status back by reading `chat.db`.
+Queue iMessages in a browser; a backend sends them **one per hour** (configurable)
+through a **macOS gateway** that drives Messages.app and reads real delivery
+status from `chat.db`.
 
 ```
 Browser ──REST + polling──▶ Server ──▶ Postgres  (the queue of record)
                               ▲
-                              │ long-poll lease   ← the gateway always dials out
+                              │ long-poll lease   ← the gateway dials out
                               │ status reports
                           Gateway ──osascript──▶ Messages.app
                               ▲                       │
                               └───── chat.db ◀────────┘
 ```
 
----
+## Run it
 
-## Quick start
-
-Prerequisites: **Node 22+**, **npm 10+**, **Docker Desktop running**.
+Needs **Node 22+**, **Docker Desktop**, and for real sends a **Mac with Messages signed in**.
 
 ```bash
-git clone git@github.com:artvichi/send_blue_ta.git
-cd send_blue_ta
-
 npm install
-cp .env.example .env      # the defaults work as-is
-
-npm run db:setup          # Postgres in Docker + schema + test database
+cp .env.example .env      # defaults work as-is
+npm run db:setup          # Postgres in Docker + migrations
 npm run dev               # api :4310, web :4320
 ```
 
-Then in a second terminal, on a Mac with Messages signed in:
+Second terminal:
 
 ```bash
-npm run gateway:setup     # once: grants the two macOS permissions, guided
+npm run gateway:setup     # once -- grants the two macOS permissions, guided
 npm run gateway:real      # sends real iMessages from your account
 ```
 
-`gateway:setup` walks through Full Disk Access and Automation -- see
-[Sending real iMessages](#sending-real-imessages) for what those are and why.
-Not on a Mac, or just working on the UI? `npm run gateway:mock` simulates the
-whole send lifecycle with no permissions at all; it is what CI uses.
+Open **http://localhost:4320**. Set *Settings → Send rate → 10s*, schedule a
+message to yourself, watch it go `QUEUED → SENT → DELIVERED` on the Dashboard.
 
-Open **http://localhost:4320** — that is the UI. (`:4310` is the API; it serves
-JSON only.) Nothing drains without a gateway running, so start it too.
+Not on a Mac, or just working on the UI: `npm run gateway:mock` plays the same
+lifecycle on timers with no permissions. CI runs against it.
 
-The **Dashboard** is the home page: stat tiles, an hourly activity chart, and
-every message with its status and attempt count. **Schedule** is the compose
-screen, and **Settings** holds the send rate and retry budget.
-
-To watch the queue work, set **Settings → Send rate → 10s**, schedule a few
-messages to yourself, and watch them drain on the Dashboard -- through
-`DELIVERED`, and `RECEIVED` once you open them on your phone.
-
-### What each piece is
-
-| Process | Port | Notes |
+| | Port | |
 |---|---|---|
-| Web UI | **4320** | Vite dev server |
-| API | **4310** | Express; `/` describes itself |
-| Postgres | **5433** | Docker, `docker compose exec postgres psql -U sbta` |
-| Gateway | — | dials out to the API; no port of its own |
+| Web | 4320 | Vite |
+| API | 4310 | Express |
+| Postgres | 5433 | Docker — off 5432 so it never touches a local install |
 
-Ports are deliberately off the common 3000/4200/5432 defaults so the stack does
-not collide with whatever else you run locally. **5433** in particular avoids a
-Postgres you may already have on 5432 — this project never touches it.
+### macOS permissions
 
-### Everything you can run
+Two, and macOS only lets a human grant them:
 
-```bash
-npm run dev            # api + web
-npm run dev:all        # api + web + gateway
-npm run gateway:setup  # guided macOS permission setup (once)
-npm run gateway:real   # gateway: real iMessages from the signed-in account
-npm run gateway:install # run that gateway as a login service on this Mac
-npm run gateway:mock   # gateway: simulated sending, for development and CI
-
-npm run verify         # typecheck + lint + unit tests
-npm test               # unit tests
-npm run test:int       # integration tests (needs npm run db:setup first)
-npm run build          # build everything
-
-npm run db:up          # start Postgres
-npm run db:down        # stop it
-npm run db:setup       # start + migrate + create/migrate the test database
-npm run db:migrate     # apply migrations after a schema change
-npm run db:studio      # browse the data
-npm run db:seed        # a few sample messages
-```
-
-### Troubleshooting
-
-| Symptom | Cause |
+| | For |
 |---|---|
-| `localhost:4310` shows JSON, not the app | That is the API. The UI is **4320**. |
-| Queue never drains | No gateway running — start `npm run gateway:real` (or `gateway:mock` while developing). |
-| `npm run test:int` fails to connect | Run `npm run db:setup` first. |
-| `db:up` hangs or errors | Docker Desktop is not running. |
-| Port already in use | Something else holds 4310/4320/5433; change it in `.env`. |
-| Dashboard shows a permissions banner | macOS has not granted the gateway's host app yet — use the banner's links, then **Re-check**. |
+| **Full Disk Access** | reading `~/Library/Messages/chat.db` |
+| **Automation** | driving Messages.app via `osascript` |
 
-### Sending real iMessages
+They belong to the app hosting your terminal (iTerm, Terminal, VS Code…), **not
+to `node`**. `gateway:setup` names the right app, opens the right pane, and
+waits for the grant to land. The dashboard shows a banner with a *Re-check*
+button until both are in place. If a grant does not take, quit that app fully
+and reopen it.
 
-```bash
-npm run gateway:setup    # guided macOS permission setup
-npm run gateway:real
-```
+To keep the gateway running after you close the terminal:
+`npm run gateway:install` (launchd, logs in `~/Library/Logs/sbta-gateway.log`).
 
-Requires macOS with Messages signed in, plus two permissions:
-
-| Permission | Why |
-|---|---|
-| **Full Disk Access** | read `chat.db` for delivery status |
-| **Automation** | drive Messages.app via `osascript` |
-
-macOS will not let any program grant these to itself — that is what TCC is for.
-What `gateway:setup` removes is the guesswork around the click:
-
-- **It names the app that actually needs the permission.** The grant belongs to
-  the application hosting your terminal (iTerm, Terminal, VS Code…), *not* to
-  `node`. Adding `node` is the usual reason this silently never works.
-- **It opens the exact settings pane**, and reveals that app in Finder so it can
-  be dragged straight into the list.
-- **It watches for the grant to land** and tells you the moment it does, instead
-  of leaving you to guess whether a restart was needed.
-
-`gateway:real` keeps re-checking while it runs, and the dashboard shows a banner
-with a re-check button until both are granted, so it self-heals rather than
-failing on the first real send.
-
-What "real" means end to end: the gateway asks Messages.app to send (AppleScript
-over `osascript`, pinned to the iMessage service so nothing silently falls back
-to SMS), then reads delivery state from a WAL-safe snapshot of
-`~/Library/Messages/chat.db` -- `SENT`, `DELIVERED`, and `RECEIVED` when the
-recipient has read receipts on. Nothing is simulated on this path.
-
-For development and testing there is `npm run gateway:mock`, which plays the
-same lifecycle on timers with no permissions; it is what the integration suite
-and CI run against.
-
-To keep the gateway running on a Mac after you close the terminal:
+### All commands
 
 ```bash
-npm run gateway:install    # login service via launchd; logs in ~/Library/Logs/sbta-gateway.log
-npm run gateway:uninstall
+npm run dev             # api + web            npm run verify     # typecheck + lint + unit
+npm run dev:all         # + gateway            npm test           # unit
+npm run gateway:setup   # macOS permissions    npm run test:int   # integration (real Postgres)
+npm run gateway:real    # real iMessages       npm run build
+npm run gateway:mock    # simulated
+npm run gateway:install # login service        npm run db:up / db:migrate / db:seed / db:studio
 ```
 
-### Recipients
-
-The **Recipients** tab is an address book: a name for each number or Apple ID
-email. The compose field searches it as you type and fills in the handle when
-you pick someone.
-
-The key is the handle itself — normalized exactly as a message's recipient is
-(`+12063456789`, `name@icloud.com`) and unique. A message joins to its recipient
-by that string at read time, so there is no foreign key to keep in sync:
-adding a name after the fact labels the whole history, and deleting one only
-forgets the name.
-
-### Everything in containers
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.full.yml up --build
-# web :4330, api :4310
-```
-
-Migrations run as their own one-shot job before the API starts, so a fresh
-volume needs no manual step. The gateway is still run natively — it needs macOS
-APIs and cannot be containerized.
-
----
-
-## Repository layout
-
-```
-apps/
-  web/        React 19 · Vite · Tailwind v4 · shadcn · React Query
-  server/     Express 5 · Prisma 7 · Postgres
-  gateway/    Node · osascript · chat.db      (runs natively on macOS)
-libs/
-  shared/     Zod schemas · status state machine · ETA projection
-infra/        Terraform: VPC, RDS, ECS Fargate, ALB, S3 + CloudFront
-docs/
-  specs/      one spec per domain
-  adr/        the decisions worth arguing about
-```
-
-Nx monorepo on npm workspaces. Projects: `web`, `server`, `gateway`, `shared`.
-
----
-
-## Commands
-
-| Command | Does |
-|---|---|
-| `npm run dev` | server + web |
-| `npm run dev:all` | server + web + gateway |
-| `npm run gateway:mock` / `npm run gateway:real` | gateway, simulated / real |
-| `npm run verify` | typecheck + lint + unit tests |
-| `npm test` | unit tests |
-| `npm run test:int` | integration tests (needs Postgres) |
-| `npm run build` | build everything |
-| `npm run db:up` / `db:migrate` / `db:seed` / `db:studio` | database |
-
----
+Whole stack in containers (gateway still native):
+`docker compose -f docker-compose.yml -f docker-compose.full.yml up --build` → web :4330, api :4310.
 
 ## How it works
 
-### The queue
-
-Postgres is the only source of truth. Claiming is one raw query — the sole place
-the codebase leaves Prisma's query API, because Prisma cannot express the clause
-that matters:
+**Postgres is the queue.** Claiming is one raw query, the only place the code
+leaves Prisma:
 
 ```sql
-SELECT id FROM "messages"
-WHERE status = 'QUEUED'
+SELECT id FROM "messages" WHERE status = 'QUEUED'
 ORDER BY "forceDispatch" DESC, "queueSeq" ASC
-LIMIT 1
-FOR UPDATE SKIP LOCKED
+LIMIT 1 FOR UPDATE SKIP LOCKED
 ```
 
-`SKIP LOCKED` makes a concurrent claimer step over a locked row rather than block
-on it, so any number of server instances each claim a **different** message —
-with no leader election, advisory lock, or coordination service.
+Any number of server instances claim *different* rows with no coordination.
 
-### Claims are pull, not push
+**Claims are pull, not push.** Nothing dispatches on a timer; a message leaves
+the queue only when a gateway asks. An offline gateway cannot burn slots.
 
-Nothing claims work on a timer. A message leaves the queue only when a gateway
-asks for a lease. So **an offline gateway cannot burn interval slots**: if nobody
-asks, nothing is claimed, and the slot is still there when it returns.
+**A lease and a reaper handle failure.** A claim holds the message for
+`LEASE_SECONDS`; a sweep returns expired leases to `QUEUED`. That covers a
+gateway crash, partition, or death mid-send.
 
-### Recovery is a lease and a reaper
+**The same text is never sent twice.** `providerGuid` — the `chat.db` id of the
+real message — is written once and survives a reap. A re-leased message that
+already has one is re-attached, not re-sent. At-least-once delivery, idempotent
+consumer.
 
-A claim leases the message for `LEASE_SECONDS`. A sweep returns expired leases to
-`QUEUED`. That — not the transport — is where delivery reliability lives, and it
-covers gateway crash, network partition, and death mid-dispatch.
+**Status reports are guarded three ways.** They arrive duplicated and out of
+order: the dispatch token must match the current attempt, a rank check stops a
+late `SENT` overwriting `DELIVERED`, and `(messageId, status)` is unique so a
+replay collides instead of duplicating.
 
-### Never sending the same text twice
+**Send time is derived, not chosen.** `eta(i) = max(lastDispatchedAt + interval, now) + i × interval`,
+computed on read. Cancelling or changing the rate re-times the queue for free.
 
-Sending an iMessage is irreversible. `providerGuid` is written once, never
-overwritten, and **survives a reap**, so it travels with the next lease. If a send
-succeeded but its status report was lost, the gateway recognises the message and
-re-attaches instead of sending it again.
+**Recipients** are an address book keyed by the normalized handle
+(`+12063456789`, `name@icloud.com`). Messages join to a name by that string at
+read time — no foreign key, so naming someone labels their whole history.
 
-At-least-once delivery with an idempotent consumer. Exactly-once is not claimed,
-because exactly-once does not exist.
+Worth knowing: failed sends retry up to the attempt budget (Settings, default 3)
+spaced by the send rate; `RECEIVED` needs the recipient's read receipts on, so
+`DELIVERED` counts as success; 555 numbers are accepted (`isPossible`, not
+`isValid`) because the mockup uses one; message bodies are never logged.
 
-### Status reports are guarded three ways
-
-They arrive duplicated, out of order, and sometimes from an attempt that no
-longer exists:
-
-1. **Dispatch token** must match the current attempt.
-2. **Rank check** — a late `SENT` cannot overwrite `DELIVERED`.
-3. **Unique `(messageId, status)`** — a replay collides instead of duplicating.
-
-### The send time is derived, not chosen
-
-The mockup has no date picker, and that is the design. The queue is FIFO at a
-fixed rate, so a message's send time follows from its position:
+## Layout
 
 ```
-anchor = max(lastDispatchedAt + interval, now)
-eta(i) = anchor + i * interval
+apps/web        React 19 · Vite · Tailwind v4 · React Query
+apps/server     Express 5 · Prisma 7 · Postgres
+apps/gateway    Node · osascript · chat.db          (native macOS)
+libs/shared     Zod schemas · status machine · ETA
+infra/          Terraform: VPC, RDS, ECS Fargate, ALB, S3 + CloudFront
+docs/specs      one per domain · docs/adr  the decisions
 ```
 
-Computed server-side on every read, never stored — so cancelling a message or
-changing the interval re-times the whole queue for free.
-
-### One transport concept
-
-The gateway long-polls; the browser polls. There is **no WebSocket and no SSE
-anywhere** — plain HTTP end to end, one datastore. Fewer moving parts, fewer
-failure modes.
-
----
-
-## Things worth knowing
-
-**Failures retry automatically.** A failed send is requeued up to the configured
-attempt budget (default 3, on the Settings tab) and then left failed for a manual
-retry. There is no backoff setting because there is no backoff: the send rate
-already spaces attempts, so a retry inherits it. The table shows the attempt
-count, and `lastError` says why the previous try did not stick.
-
-**`RECEIVED` frequently never arrives.** It requires the recipient to have read
-receipts enabled, which most people do not. `DELIVERED` is treated as a
-legitimate success end-state throughout. This is a property of iMessage, not a
-gap in the implementation.
-
-**Phone validation accepts `isPossible()`, not `isValid()`.** `isValid()` rejects
-every 555 area code as fictional — including `+1 (555) 123-4567`, the number in
-the assessment's own mockup. Wrongly rejecting a deliverable number is worse than
-accepting an undeliverable one, since `FAILED` is already a visible, retryable
-outcome.
-
-**Apple timestamps are nanoseconds since 2001-01-01**, not Unix:
-`unix = appleNs / 1e9 + 978307200`.
-
-**`chat.db` is read through a snapshot.** Messages.app holds it open in WAL mode,
-so `.db`, `-wal` and `-shm` are copied together and the copy is opened read-only.
-
-**Message bodies are never logged.** They are personal data; the logger redacts
-them explicitly.
-
----
+Nx on npm workspaces.
 
 ## Testing
 
-```bash
-npm test        # unit -- pure logic, no database, milliseconds
-npm run test:int    # integration -- real Postgres, own database
-```
-
-Unit tests cover the status state machine, ETA projection, the rate gate, phone
-normalization and the Apple epoch conversion.
-
-Integration tests run against a real Postgres, in two layers. The repository
-suites prove what only a database can: that five concurrent claims return five
-*different* messages, that the reaper reclaims abandoned leases, that a stale
-dispatch token is rejected, and that the GUID survives a reap. The HTTP suite
-proves a caller actually experiences all of that — E.164 normalization through
-the route, the validation error shape, gateway auth, the rate gate closing after
-one lease, and the conflict codes on cancel and retry.
-
-CI runs both on every pull request, against a Postgres service container.
-
----
+`npm test` — 202 unit tests, no database. `npm run test:int` — 81 against real
+Postgres, including five concurrent claims returning five different rows, reaper
+reclaim, stale-token rejection, and the GUID surviving a reap. Both run in CI.
 
 ## Deployment
 
-`GitHub → Docker → ECR → Terraform → AWS`, with **GitHub OIDC** into an IAM role
-(no long-lived AWS keys). The Terraform is real and validated; it is never
-applied, because this is an assessment.
+GitHub → Docker → ECR → Terraform → AWS, via GitHub OIDC (no stored keys).
+Terraform is validated in CI and planned by a manual release workflow; it is
+never applied here.
 
-**The gateway cannot run in AWS** — it needs a signed-in macOS Messages account,
-so it lives on a Mac (on-prem, MacStadium, or an EC2 `mac2.metal` instance).
+The gateway cannot run in AWS — it needs a signed-in Messages account — so it
+lives on a Mac. Because it dials out, that Mac needs no inbound rules, VPN, or
+public IP. See [`docs/specs/05-deployment.md`](docs/specs/05-deployment.md).
 
-This is where the transport decision pays off. Because the gateway **dials out**,
-it works from anywhere with outbound HTTPS: no inbound rules, no VPN, no public
-IP, no port forwarding. There is not one inbound gateway rule anywhere in
-`infra/`. The design chosen for local simplicity is exactly what makes the
-production topology work.
+## Docs
 
-Details in [`docs/specs/05-deployment.md`](docs/specs/05-deployment.md).
-
----
-
-## Extending it
-
-Designed for, not speculatively built:
-
-- **Scheduling policy** — `SchedulingPolicy` contributes SQL fragments to one
-  shared claim query, so every policy inherits the `SKIP LOCKED` guarantee.
-  `FIFO` ships; `TIMESTAMPED` is implemented against the already-present
-  `scheduledAt` column. Switching is a `Setting.policy` value, not a refactor.
-- **Rate limiting** — a separate interface from ordering, so per-recipient
-  fairness or quiet hours is a new `RateLimiter`, not surgery on the scheduler.
-- **Driver** — `applescript` and `mock` ship; a hosted provider is a third
-  implementation of the same interface.
-- **Transport** — long-poll ships. A broker would slot in behind the same seam,
-  but would need a transactional outbox to avoid dual-writing against Postgres,
-  which is exactly why it was not adopted. See
-  [ADR 0002](docs/adr/0002-no-message-broker.md).
-
----
-
-## Documentation
-
-| Doc | |
-|---|---|
-| [Overview](docs/specs/00-overview.md) | the system and the two decisions that shape it |
-| [Shared contract](docs/specs/01-shared.md) | status machine, schemas, ETA, phone rules |
-| [Server](docs/specs/02-server.md) | queue, claim, reaper, API |
-| [Gateway](docs/specs/03-gateway.md) | AppleScript, `chat.db`, drivers, permissions |
-| [Web](docs/specs/04-web.md) | structure, state, design decisions |
-| [Deployment](docs/specs/05-deployment.md) | Docker, CI, Terraform, AWS |
-| [ADR 0001](docs/adr/0001-postgres-as-the-queue.md) | Postgres as the queue |
-| [ADR 0002](docs/adr/0002-no-message-broker.md) | why no message broker |
-| [ADR 0003](docs/adr/0003-pull-based-gateway.md) | why the gateway dials out |
-
-`CLAUDE.md` at the root and in each app carries the invariants worth not breaking.
+[Overview](docs/specs/00-overview.md) ·
+[Shared](docs/specs/01-shared.md) ·
+[Server](docs/specs/02-server.md) ·
+[Gateway](docs/specs/03-gateway.md) ·
+[Web](docs/specs/04-web.md) ·
+[Deployment](docs/specs/05-deployment.md) ·
+ADRs: [Postgres as the queue](docs/adr/0001-postgres-as-the-queue.md) ·
+[No broker](docs/adr/0002-no-message-broker.md) ·
+[Pull-based gateway](docs/adr/0003-pull-based-gateway.md)
