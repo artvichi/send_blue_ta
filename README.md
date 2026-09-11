@@ -8,6 +8,12 @@ status — sent, delivered, read — from `chat.db`.
   <img src="docs/images/schedule.png" alt="The Schedule screen: recipient, message, and the queue below" width="720">
 </p>
 
+> **Runs on macOS.** The gateway — the part that sends — drives Messages.app
+> with AppleScript and reads `~/Library/Messages/chat.db`, so it must run
+> natively on a Mac signed in to Messages. It cannot be containerised. The web
+> app and API run anywhere (Docker included); on any other OS use the mock
+> gateway, which simulates sending.
+
 - [Quick start](#quick-start)
 - [Using the app](#using-the-app)
 - [Sending real iMessages](#sending-real-imessages)

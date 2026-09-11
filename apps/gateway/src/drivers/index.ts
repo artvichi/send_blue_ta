@@ -11,9 +11,19 @@ export type {
   DriverCapabilities,
 } from './types.js';
 
-export function createDriver(name = config().GATEWAY_DRIVER): MessageDriver {
+export function createDriver(name = config().GATEWAY_DRIVER, platform = process.platform): MessageDriver {
   switch (name) {
     case 'applescript':
+      // Messages.app, osascript and ~/Library/Messages/chat.db exist only on
+      // macOS. Say so up front rather than failing on the first send with
+      // "osascript: command not found".
+      if (platform !== 'darwin') {
+        throw new Error(
+          `GATEWAY_DRIVER=applescript needs macOS (this is ${platform}). ` +
+            'The gateway must run natively on a Mac signed in to Messages; ' +
+            'use GATEWAY_DRIVER=mock elsewhere.',
+        );
+      }
       return createAppleScriptDriver();
     case 'mock':
       return createMockDriver();

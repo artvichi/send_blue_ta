@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockDriver } from './mock.js';
+import { createDriver } from './index.js';
 import type { StatusEvent } from './types.js';
 
 beforeEach(() => {
@@ -51,5 +52,15 @@ describe('mock driver', () => {
     // The config is memoized, so assert against a driver reading the new value.
     const driver = freshDriver();
     await expect(driver.send('+12063456789', 'hello')).rejects.toThrow(/simulated send failure/i);
+  });
+});
+
+describe('createDriver', () => {
+  it('refuses the applescript driver off macOS, naming the fix', () => {
+    expect(() => createDriver('applescript', 'linux')).toThrow(/needs macOS.*GATEWAY_DRIVER=mock/s);
+  });
+
+  it('builds the mock driver on any platform', () => {
+    expect(createDriver('mock', 'linux').name).toBe('mock');
   });
 });
