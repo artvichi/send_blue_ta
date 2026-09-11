@@ -34,9 +34,16 @@ export function RecipientForm({ initialTo }: { initialTo?: string }) {
 
   return (
     <Card className="p-5 sm:p-6">
-      <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="recipient-name">Name</Label>
+      {/* Three explicit rows -- label, input, error -- shared across the columns
+          via subgrid, so an error message (or anything a browser extension
+          injects under one field) can never push that field out of line. */}
+      <form
+        onSubmit={onSubmit}
+        noValidate
+        className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:grid-rows-[auto_auto_auto] sm:gap-y-0"
+      >
+        <div className="flex flex-col gap-2 sm:gap-0 sm:grid sm:grid-rows-subgrid sm:row-span-3">
+          <Label htmlFor="recipient-name" className="sm:mb-2">Name</Label>
           <Input
             id="recipient-name"
             placeholder="Ada Lovelace"
@@ -45,15 +52,13 @@ export function RecipientForm({ initialTo }: { initialTo?: string }) {
             aria-describedby={errors.name ? 'recipient-name-error' : undefined}
             {...register('name')}
           />
-          {errors.name && (
-            <p id="recipient-name-error" role="alert" className="text-sm text-bad">
-              {errors.name.message}
-            </p>
-          )}
+          <p id="recipient-name-error" role="alert" className="text-sm text-bad empty:hidden sm:mt-2">
+            {errors.name?.message}
+          </p>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="recipient-to">Phone number or email</Label>
+        <div className="flex flex-col gap-2 sm:gap-0 sm:grid sm:grid-rows-subgrid sm:row-span-3">
+          <Label htmlFor="recipient-to" className="sm:mb-2">Phone number or email</Label>
           <Input
             id="recipient-to"
             placeholder="+1 (555) 000-0000  ·  name@icloud.com"
@@ -62,17 +67,19 @@ export function RecipientForm({ initialTo }: { initialTo?: string }) {
             aria-describedby={errors.to ? 'recipient-to-error' : undefined}
             {...register('to')}
           />
-          {errors.to && (
-            <p id="recipient-to-error" role="alert" className="text-sm text-bad">
-              {errors.to.message}
-            </p>
-          )}
+          <p id="recipient-to-error" role="alert" className="text-sm text-bad empty:hidden sm:mt-2">
+            {errors.to?.message}
+          </p>
         </div>
 
-        <Button type="submit" variant="primary" size="md" className="h-12" disabled={create.isPending}>
-          {create.isPending ? <Loader2 className="animate-spin" /> : <UserPlus />}
-          Add
-        </Button>
+        <div className="sm:grid sm:grid-rows-subgrid sm:row-span-3">
+          <span aria-hidden className="hidden sm:block" />
+          <Button type="submit" variant="primary" size="md" className="h-12 w-full sm:w-auto" disabled={create.isPending}>
+            {create.isPending ? <Loader2 className="animate-spin" /> : <UserPlus />}
+            Add
+          </Button>
+          <span aria-hidden className="hidden sm:block" />
+        </div>
       </form>
     </Card>
   );
