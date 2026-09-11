@@ -350,3 +350,53 @@ describe('automatic retry', () => {
     expect(result).toMatchObject({ status: 'FAILED' });
   });
 });
+
+describe('concurrent reports for one message', () => {
+  it('never loses the higher status when DELIVERED and RECEIVED race', async () => {
+    // One chat.db poll can see delivered and read at once and fire both. Run
+    // the race repeatedly: whichever commits first, the row must end RECEIVED
+    // with both timestamps, never DELIVERED with a read receipt recorded.
+    for (let round = 0; round < 12; round++) {
+      await resetDatabase();
+      const claimed = await claimOne();
+      const base = { messageId: claimed.id, dispatchToken: claimed.dispatchToken };
+      await applyStatusReport({ ...base, status: 'SENT', occurredAt: new Date() }, db);
+
+      const deliveredAt = new Date(Date.now() - 20);
+      const receivedAt = new Date(Date.now() - 10);
+      await Promise.all([
+        applyStatusReport({ ...base, status: 'DELIVERED', occurredAt: deliveredAt }, db),
+        applyStatusReport({ ...base, status: 'RECEIVED', occurredAt: receivedAt }, db),
+      ]);
+
+      const row = await db.message.findUniqueOrThrow({ where: { id: claimed.id } });
+      expect(row.status, `round ${round}`).toBe('RECEIVED');
+      expect(row.deliveredAt?.getTime(), `round ${round} deliveredAt`).toBe(deliveredAt.getTime());
+      expect(row.receivedAt?.getTime(), `round ${round} receivedAt`).toBe(receivedAt.getTime());
+    }
+  });
+
+  it('records the delivery time even when DELIVERED arrives after RECEIVED', async () => {
+    const claimed = await claimOne();
+    const base = { messageId: claimed.id, dispatchToken: claimed.dispatchToken };
+    await applyStatusReport({ ...base, status: 'RECEIVED', occurredAt: new Date() }, db);
+
+    const deliveredAt = new Date(Date.now() - 5000);
+    const late = await applyStatusReport({ ...base, status: 'DELIVERED', occurredAt: deliveredAt }, db);
+    expect(late).toMatchObject({ outcome: 'ignored', reason: 'no-transition' });
+
+    const row = await db.message.findUniqueOrThrow({ where: { id: claimed.id } });
+    expect(row.status).toBe('RECEIVED');
+    expect(row.deliveredAt?.getTime()).toBe(deliveredAt.getTime());
+  });
+
+  it('does not overwrite a timestamp that is already set', async () => {
+    const claimed = await claimOne();
+    const base = { messageId: claimed.id, dispatchToken: claimed.dispatchToken };
+    const first = new Date(Date.now() - 5000);
+    await applyStatusReport({ ...base, status: 'DELIVERED', occurredAt: first }, db);
+    await applyStatusReport({ ...base, status: 'DELIVERED', occurredAt: new Date() }, db);
+    const row = await db.message.findUniqueOrThrow({ where: { id: claimed.id } });
+    expect(row.deliveredAt?.getTime()).toBe(first.getTime());
+  });
+});

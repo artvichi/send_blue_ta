@@ -55,22 +55,25 @@
     100% { transform: scale(1); opacity: 1; }
   }
 
-  --color-good: oklch(58% 0.15 149);
-  --color-good-soft: oklch(95.5% 0.04 149);
+  --color-good: oklch(60% 0.17 160);
+  --color-good-soft: oklch(96% 0.045 160);
   --color-warn: oklch(64% 0.16 62);
   --color-warn-soft: oklch(96% 0.045 62);
-  --color-bad: oklch(58% 0.2 25);
-  --color-bad-soft: oklch(95.5% 0.035 25);
+  --color-bad: oklch(60% 0.21 22);
+  --color-bad-soft: oklch(96% 0.035 22);
 
   /**
    * Chart-only failure red, darker than --color-bad.
+   * Validated with the dataviz palette checker: light ΔE 26.6 deutan, dark 24.1
+   * protan against the brand blue; both inside the lightness band for their
+   * surface.
    *
    * In light mode the status green and red sit at the same lightness, which
    * collapses to ΔE 3.4 under deuteranopia -- delivered and failed become the
    * same mark. Dropping the lightness separates them by a channel that survives
    * colour blindness (measured ΔE 10.8) without needing a pattern.
    */
-  --color-chart-fail: oklch(46% 0.19 25);
+  --color-chart-fail: oklch(48% 0.2 22);
 
   --font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
@@ -101,12 +104,12 @@
   --color-brand: oklch(64% 0.19 259);
   --color-brand-deep: oklch(58% 0.2 271);
   --color-brand-soft: oklch(28% 0.06 259);
-  --color-good: oklch(72% 0.17 149);
-  --color-good-soft: oklch(26% 0.06 149);
+  --color-good: oklch(64% 0.15 160);
+  --color-good-soft: oklch(27% 0.06 160);
   --color-warn: oklch(76% 0.16 68);
   --color-warn-soft: oklch(28% 0.06 68);
-  --color-bad: oklch(68% 0.19 25);
-  --color-bad-soft: oklch(28% 0.07 25);
+  --color-bad: oklch(62% 0.19 22);
+  --color-bad-soft: oklch(28% 0.07 22);
   }
 }
 
@@ -122,13 +125,13 @@
   --color-brand: oklch(64% 0.19 259);
   --color-brand-deep: oklch(58% 0.2 271);
   --color-brand-soft: oklch(28% 0.06 259);
-  --color-good: oklch(72% 0.17 149);
-  --color-good-soft: oklch(26% 0.06 149);
+  --color-good: oklch(64% 0.15 160);
+  --color-good-soft: oklch(27% 0.06 160);
   --color-warn: oklch(76% 0.16 68);
   --color-warn-soft: oklch(28% 0.06 68);
-  --color-bad: oklch(68% 0.19 25);
-  --color-bad-soft: oklch(28% 0.07 25);
-  --color-chart-fail: oklch(68% 0.19 25);
+  --color-bad: oklch(62% 0.19 22);
+  --color-bad-soft: oklch(28% 0.07 22);
+  --color-chart-fail: oklch(62% 0.19 22);
 }
 
 /** Lets components opt into dark-only styling when a token is not enough. */

@@ -141,6 +141,34 @@ describe('createWatchers', () => {
     expect(watchers.size).toBe(1);
   });
 
+  it('sends one message\'s reports in the order observed, never concurrently', async () => {
+    const driver = emittingDriver();
+    const started: string[] = [];
+    const finished: string[] = [];
+    let release!: () => void;
+    const slowReport = (r: StatusReport) =>
+      new Promise<void>((resolve) => {
+        started.push(r.status);
+        release = () => {
+          finished.push(r.status);
+          resolve();
+        };
+      });
+    const watchers = createWatchers(driver, slowReport);
+    watchers.watch(lease(), 'g');
+
+    // A single poll that saw delivered and read at once.
+    driver.emit({ status: 'DELIVERED', occurredAt: new Date() });
+    driver.emit({ status: 'RECEIVED', occurredAt: new Date() });
+    await Promise.resolve();
+
+    expect(started).toEqual(['DELIVERED']); // RECEIVED waits its turn
+    release();
+    await new Promise((r) => setTimeout(r, 0)); // let the chain advance
+    expect(started).toEqual(['DELIVERED', 'RECEIVED']);
+    expect(finished).toEqual(['DELIVERED']);
+  });
+
   it('releases the watcher on a terminal event, and keeps it on DELIVERED', async () => {
     const driver = emittingDriver();
     const watchers = createWatchers(driver, reportStatus);

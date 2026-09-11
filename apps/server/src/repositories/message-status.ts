@@ -5,17 +5,39 @@ import type { ApplyStatusInput, ApplyStatusResult } from './types.js';
 import { getSettings } from './settings.js';
 import { recordEvent } from './message-events.js';
 
+/** Thrown inside the transaction when the row changed under us; retried. */
+class ConcurrentReport extends Error {}
+
+const MAX_ATTEMPTS = 4;
+
 /**
  * Apply a gateway status report. Three guards, because reports arrive
  * duplicated, out of order, and sometimes from an attempt that no longer exists:
  * the dispatch token must match the current attempt; the transition must
  * advance the rank; and the event log's unique (messageId, status) makes a
  * replay collide instead of duplicating.
+ *
+ * Reports for one message also arrive *concurrently* -- a single chat.db poll
+ * can observe delivered and read at once and fire both. Every write is a
+ * compare-and-set on the status this transaction read, so of two racing
+ * reports one wins and the other re-reads and re-applies the guards against
+ * the new state. Without this the later commit silently overwrote the earlier
+ * one, and a message could end at DELIVERED with its read receipt recorded.
  */
 export async function applyStatusReport(
   input: ApplyStatusInput,
   db: Db = prisma,
 ): Promise<ApplyStatusResult> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await applyOnce(input, db);
+    } catch (err) {
+      if (!(err instanceof ConcurrentReport) || attempt >= MAX_ATTEMPTS) throw err;
+    }
+  }
+}
+
+async function applyOnce(input: ApplyStatusInput, db: Db): Promise<ApplyStatusResult> {
   return db.$transaction(async (tx) => {
     const message = await tx.message.findUnique({
       where: { id: input.messageId },
@@ -25,10 +47,22 @@ export async function applyStatusReport(
         dispatchToken: true,
         providerGuid: true,
         attempts: true,
+        sentAt: true,
+        deliveredAt: true,
+        receivedAt: true,
       },
     });
 
     if (!message) return { outcome: 'ignored', reason: 'not-found' } as const;
+
+    /** Write only if the row is still in the state this transaction read. */
+    const cas = async (data: Prisma.MessageUpdateManyMutationInput) => {
+      const { count } = await tx.message.updateMany({
+        where: { id: input.messageId, status: message.status, dispatchToken: message.dispatchToken },
+        data,
+      });
+      if (count === 0) throw new ConcurrentReport();
+    };
 
     if (message.dispatchToken !== input.dispatchToken) {
       return { outcome: 'ignored', reason: 'stale-token', status: message.status } as const;
@@ -40,25 +74,21 @@ export async function applyStatusReport(
      * re-reports a status it already sent would silently fail to record the
      * double-send guard.
      */
-    if (input.providerGuid && !message.providerGuid) {
-      await tx.message.update({
-        where: { id: input.messageId },
-        data: { providerGuid: input.providerGuid },
-      });
-      message.providerGuid = input.providerGuid;
-    }
+    const facts: Prisma.MessageUpdateManyMutationInput = {};
+    if (input.providerGuid && !message.providerGuid) facts.providerGuid = input.providerGuid;
+
+    // Likewise a timestamp: DELIVERED arriving after RECEIVED cannot move the
+    // status backwards, but the message *was* delivered at that instant and
+    // the timeline should say when.
+    const stampField = TIMESTAMP_FIELD[input.status];
+    if (stampField && !message[stampField]) facts[stampField] = input.occurredAt;
 
     if (!canTransition(message.status, input.status)) {
+      if (Object.keys(facts).length > 0) await cas(facts);
       return { outcome: 'ignored', reason: 'no-transition', status: message.status } as const;
     }
 
-    const data: Prisma.MessageUpdateInput = { status: input.status };
-
-    const stampField = TIMESTAMP_FIELD[input.status];
-    if (stampField) data[stampField] = input.occurredAt;
-
-    // Written once, never overwritten: this is the double-send guard.
-    if (input.providerGuid && !message.providerGuid) data.providerGuid = input.providerGuid;
+    const data: Prisma.MessageUpdateManyMutationInput = { ...facts, status: input.status };
 
     if (input.status === 'FAILED') {
       data.lastError = input.error ?? 'Unknown gateway error';
@@ -74,15 +104,12 @@ export async function applyStatusReport(
        */
       const { maxAttempts } = await getSettings(tx as unknown as Db);
       if (message.attempts < maxAttempts) {
-        await tx.message.update({
-          where: { id: input.messageId },
-          data: {
-            status: 'QUEUED',
-            dispatchToken: null,
-            leaseExpiresAt: null,
-            providerGuid: null,
-            lastError: data.lastError,
-          },
+        await cas({
+          status: 'QUEUED',
+          dispatchToken: null,
+          leaseExpiresAt: null,
+          providerGuid: null,
+          lastError: data.lastError,
         });
         // Deliberately no FAILED event: the message did not reach FAILED, it
         // went back in the queue. The attempt counter carries the retry story,
@@ -97,7 +124,7 @@ export async function applyStatusReport(
       data.leaseExpiresAt = null;
     }
 
-    await tx.message.update({ where: { id: input.messageId }, data });
+    await cas(data);
     await recordEvent(
       input.messageId,
       input.status,

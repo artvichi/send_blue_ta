@@ -1,3 +1,13 @@
+```text
+                                                                          _
+                                                                      _.-' |
+                                                                  _.-'    /
+   ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  _.-'      /
+                                                           '-._  \      /
+                                                               '-._\   /
+                                                                   '-.\/
+```
+
 # iMessage Scheduler
 
 Queue iMessages in a browser; a backend sends them **one per hour** (configurable)
@@ -133,7 +143,7 @@ Nx on npm workspaces.
 
 ## Testing
 
-`npm test` — 202 unit tests, no database. `npm run test:int` — 81 against real
+`npm test` — 203 unit tests, no database. `npm run test:int` — 84 against real
 Postgres, including five concurrent claims returning five different rows, reaper
 reclaim, stale-token rejection, and the GUID surviving a reap. Both run in CI.
 

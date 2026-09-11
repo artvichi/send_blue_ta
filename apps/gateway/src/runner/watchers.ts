@@ -28,16 +28,25 @@ export function createWatchers(
     },
 
     watch(lease, providerGuid) {
+      // One poll can observe delivered and read together and emit both at
+      // once. Reports for a message are chained so they leave in the order
+      // they were observed rather than racing each other to the server.
+      let chain: Promise<void> = Promise.resolve();
+
       const unsubscribe = driver.watch(providerGuid, (event) => {
-        void reportStatus({
-          messageId: lease.messageId,
-          dispatchToken: lease.dispatchToken,
-          status: event.status,
-          occurredAt: event.occurredAt,
-          ...(event.error ? { error: event.error } : {}),
-        }).catch((err) =>
-          logger.warn('failed to report watched status', { error: String(err) }),
-        );
+        chain = chain
+          .then(() =>
+            reportStatus({
+              messageId: lease.messageId,
+              dispatchToken: lease.dispatchToken,
+              status: event.status,
+              occurredAt: event.occurredAt,
+              ...(event.error ? { error: event.error } : {}),
+            }),
+          )
+          .catch((err) =>
+            logger.warn('failed to report watched status', { error: String(err) }),
+          );
 
         // Nothing can follow either of these, so release the timer.
         if (event.status === 'RECEIVED' || event.status === 'FAILED') {
