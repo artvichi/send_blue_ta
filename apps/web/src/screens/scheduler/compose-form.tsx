@@ -1,7 +1,8 @@
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Send, Loader2 } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
 import { createMessageSchema, MAX_BODY_LENGTH, type CreateMessageInput } from '@sb/shared';
 import { Button } from '@/components/ui/button';
 import { RecipientPicker } from '@/components/recipient-picker';
@@ -20,9 +21,20 @@ import { useScheduleMessage } from '@/api/messages';
  * Validation runs against the schema shared with the server, so the rules
  * cannot drift between the two.
  */
+/** Long enough for the plane to leave before the check lands, then to be seen. */
+const FLY_MS = 550;
+const SENT_MS = 1000;
+
+type SubmitPhase = 'idle' | 'sending' | 'sent';
+
 export function ComposeForm() {
   const schedule = useScheduleMessage();
   const [params] = useSearchParams();
+  const [phase, setPhase] = useState<SubmitPhase>('idle');
+  const sentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (sentTimer.current) clearTimeout(sentTimer.current);
+  }, []);
 
   const {
     register,
@@ -39,8 +51,20 @@ export function ComposeForm() {
   const body = watch('body') ?? '';
 
   const onSubmit = handleSubmit(async (values) => {
-    await schedule.mutateAsync(values);
+    setPhase('sending');
+    try {
+      // The plane always finishes leaving, even when the server answers faster.
+      await Promise.all([
+        schedule.mutateAsync(values),
+        new Promise((resolve) => setTimeout(resolve, FLY_MS)),
+      ]);
+    } catch {
+      setPhase('idle'); // the toast has already said why
+      return;
+    }
     reset();
+    setPhase('sent');
+    sentTimer.current = setTimeout(() => setPhase('idle'), SENT_MS);
   });
 
   return (
@@ -90,16 +114,30 @@ export function ComposeForm() {
           )}
         </div>
 
-        <Button type="submit" variant="primary" size="lg" disabled={schedule.isPending}>
-          {schedule.isPending ? (
-            <>
-              <Loader2 className="animate-spin" />
-              Scheduling...
-            </>
-          ) : (
+        <Button
+          type="submit"
+          variant={phase === 'sent' ? 'success' : 'primary'}
+          size="lg"
+          disabled={phase !== 'idle'}
+          aria-live="polite"
+          className="relative overflow-hidden disabled:opacity-100"
+        >
+          {phase === 'idle' && (
             <>
               <Send />
               Schedule Message
+            </>
+          )}
+          {phase === 'sending' && (
+            <>
+              <Send className="animate-fly-off" aria-hidden />
+              <span className="sr-only">Scheduling</span>
+            </>
+          )}
+          {phase === 'sent' && (
+            <>
+              <Check className="animate-pop-in" strokeWidth={3} aria-hidden />
+              <span className="sr-only">Scheduled</span>
             </>
           )}
         </Button>

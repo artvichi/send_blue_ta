@@ -32,6 +32,10 @@ const buttonVariants = cva(
         secondary: 'bg-surface text-ink border border-rule hover:bg-sunk hover:border-ink-mute/40 hover:-translate-y-px active:translate-y-0',
         ghost: 'text-ink-soft hover:bg-sunk hover:text-ink active:scale-95',
         danger: 'bg-bad-soft text-bad border border-bad/25 hover:bg-bad/15 hover:border-bad/40 hover:-translate-y-px active:translate-y-0',
+        // A momentary "done" state; not a resting style, so no hover treatment.
+        // Snaps rather than fading: the gradient it replaces has no background
+        // colour to transition from, so a fade reads as a washed-out flash.
+        success: 'bg-good text-white shadow-sm transition-none',
       },
       size: {
         sm: 'h-8 px-3 text-xs [&_svg]:size-3.5',

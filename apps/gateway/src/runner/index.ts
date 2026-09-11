@@ -36,6 +36,8 @@ export function createRunner(driver: MessageDriver): Runner {
 
   let running = false;
   let loop: Promise<void> | null = null;
+  // Aborts an idle long-poll on stop. A send in progress is never aborted.
+  let polling = new AbortController();
   let heartbeatTimer: NodeJS.Timeout | null = null;
   let caps: DriverCapabilities = {
     ready: false,
@@ -88,8 +90,8 @@ export function createRunner(driver: MessageDriver): Runner {
           continue;
         }
 
-        const lease = await claimLease();
-        if (lease) await handleLease(lease, { driver, reportStatus, watchers });
+        const lease = await claimLease(polling.signal);
+        if (lease && running) await handleLease(lease, { driver, reportStatus, watchers });
       } catch (err) {
         if (err instanceof ServerUnavailableError) {
           // The server being down is expected during a restart or deploy. Keep
@@ -107,6 +109,7 @@ export function createRunner(driver: MessageDriver): Runner {
   return {
     async start() {
       running = true;
+      polling = new AbortController();
       heartbeatTimer = setInterval(() => void beat(), cfg.HEARTBEAT_INTERVAL_MS);
       await beat();
 
@@ -123,8 +126,10 @@ export function createRunner(driver: MessageDriver): Runner {
     async stop() {
       running = false;
       if (heartbeatTimer) clearInterval(heartbeatTimer);
-      // Let an in-progress send finish: cutting osascript off halfway is how a
-      // message goes out with no GUID recorded against it.
+      // Drop an idle long-poll immediately, but let an in-progress send finish:
+      // cutting osascript off halfway is how a message goes out with no GUID
+      // recorded against it.
+      polling.abort();
       await loop;
       watchers.stopAll();
     },
