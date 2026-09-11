@@ -13,6 +13,10 @@ Queue iMessages in a browser; a backend sends them **one per hour** (configurabl
 through a **macOS gateway** that drives Messages.app and reads real delivery
 status from `chat.db`.
 
+<p align="center">
+  <img src="docs/images/schedule.png" alt="The Schedule screen: recipient, message, and the queue below" width="720">
+</p>
+
 ```
 Browser ──REST + polling──▶ Server ──▶ Postgres  (the queue of record)
                               ▲
