@@ -56,7 +56,7 @@ messages, and watch them drain on the Dashboard.
 |---|---|---|
 | Web UI | **4320** | Vite dev server |
 | API | **4310** | Express; `/` describes itself |
-| Postgres | **5433** | Docker container `sbta-postgres` |
+| Postgres | **5433** | Docker, `docker compose exec postgres psql -U sbta` |
 | Gateway | — | dials out to the API; no port of its own |
 
 Ports are deliberately off the common 3000/4200/5432 defaults so the stack does
