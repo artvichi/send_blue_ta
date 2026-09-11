@@ -130,7 +130,7 @@ export function ComposeForm() {
           )}
           {phase === 'sending' && (
             <>
-              <Send className="animate-fly-off" aria-hidden />
+              <Send className="absolute animate-fly-off" aria-hidden />
               <span className="sr-only">Scheduling</span>
             </>
           )}

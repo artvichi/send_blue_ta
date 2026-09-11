@@ -4,9 +4,6 @@ A browser UI queues iMessages, a backend drains them **FIFO at one per hour**
 (configurable), and a **macOS gateway** sends them through Messages.app and
 reports real delivery status back by reading `chat.db`.
 
-> **Implementation plan and architecture write-up:**
-> https://claude.ai/code/artifact/8691df39-37b1-4808-9071-34ed4919d79b
-
 ```
 Browser ──REST + polling──▶ Server ──▶ Postgres  (the queue of record)
                               ▲
@@ -34,11 +31,17 @@ npm run db:setup          # Postgres in Docker + schema + test database
 npm run dev               # api :4310, web :4320
 ```
 
-Then in a second terminal:
+Then in a second terminal, on a Mac with Messages signed in:
 
 ```bash
-npm run gateway:mock      # simulated sending, no macOS permissions needed
+npm run gateway:setup     # once: grants the two macOS permissions, guided
+npm run gateway:real      # sends real iMessages from your account
 ```
+
+`gateway:setup` walks through Full Disk Access and Automation -- see
+[Sending real iMessages](#sending-real-imessages) for what those are and why.
+Not on a Mac, or just working on the UI? `npm run gateway:mock` simulates the
+whole send lifecycle with no permissions at all; it is what CI uses.
 
 Open **http://localhost:4320** — that is the UI. (`:4310` is the API; it serves
 JSON only.) Nothing drains without a gateway running, so start it too.
@@ -48,7 +51,8 @@ every message with its status and attempt count. **Schedule** is the compose
 screen, and **Settings** holds the send rate and retry budget.
 
 To watch the queue work, set **Settings → Send rate → 10s**, schedule a few
-messages, and watch them drain on the Dashboard.
+messages to yourself, and watch them drain on the Dashboard -- through
+`DELIVERED`, and `RECEIVED` once you open them on your phone.
 
 ### What each piece is
 
@@ -68,10 +72,10 @@ Postgres you may already have on 5432 — this project never touches it.
 ```bash
 npm run dev            # api + web
 npm run dev:all        # api + web + gateway
-npm run gateway:mock   # gateway, simulated sending
-npm run gateway:real   # gateway, real iMessages (macOS only)
-npm run gateway:setup  # guided macOS permission setup
-npm run gateway:install # run the gateway as a login service on this Mac
+npm run gateway:setup  # guided macOS permission setup (once)
+npm run gateway:real   # gateway: real iMessages from the signed-in account
+npm run gateway:install # run that gateway as a login service on this Mac
+npm run gateway:mock   # gateway: simulated sending, for development and CI
 
 npm run verify         # typecheck + lint + unit tests
 npm test               # unit tests
@@ -91,10 +95,11 @@ npm run db:seed        # a few sample messages
 | Symptom | Cause |
 |---|---|
 | `localhost:4310` shows JSON, not the app | That is the API. The UI is **4320**. |
-| Queue never drains | No gateway running — start `npm run gateway:mock`. |
+| Queue never drains | No gateway running — start `npm run gateway:real` (or `gateway:mock` while developing). |
 | `npm run test:int` fails to connect | Run `npm run db:setup` first. |
 | `db:up` hangs or errors | Docker Desktop is not running. |
 | Port already in use | Something else holds 4310/4320/5433; change it in `.env`. |
+| Dashboard shows a permissions banner | macOS has not granted the gateway's host app yet — use the banner's links, then **Re-check**. |
 
 ### Sending real iMessages
 
@@ -123,8 +128,17 @@ What `gateway:setup` removes is the guesswork around the click:
 
 `gateway:real` keeps re-checking while it runs, and the dashboard shows a banner
 with a re-check button until both are granted, so it self-heals rather than
-failing on the first real send. Everything works without either permission using
-`npm run gateway:mock`.
+failing on the first real send.
+
+What "real" means end to end: the gateway asks Messages.app to send (AppleScript
+over `osascript`, pinned to the iMessage service so nothing silently falls back
+to SMS), then reads delivery state from a WAL-safe snapshot of
+`~/Library/Messages/chat.db` -- `SENT`, `DELIVERED`, and `RECEIVED` when the
+recipient has read receipts on. Nothing is simulated on this path.
+
+For development and testing there is `npm run gateway:mock`, which plays the
+same lifecycle on timers with no permissions; it is what the integration suite
+and CI run against.
 
 To keep the gateway running on a Mac after you close the terminal:
 

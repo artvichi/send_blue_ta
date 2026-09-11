@@ -1,9 +1,18 @@
 name: Release
 
+# Manual only. The pipeline is complete -- build, push to ECR, terraform plan --
+# but it needs an AWS account behind AWS_DEPLOY_ROLE_ARN, and this repository
+# has none. Triggering it on every push to main would only produce a red X
+# that means "no cloud", not "broken". Wire the secrets, then run it from the
+# Actions tab or `gh workflow run release.yml`.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Terraform var-file to plan against
+        type: choice
+        options: [dev, prod]
+        default: dev
 
 # GitHub OIDC exchanged for a short-lived IAM role. No long-lived AWS keys exist
 # in this repository or in its secrets.
@@ -73,5 +82,4 @@ jobs:
       - run: terraform -chdir=infra validate
 
       # Deliberately stops at plan. Applying is a manual, reviewed step.
-      - run: terraform -chdir=infra plan -var-file=env/prod.tfvars -var="image_tag=${{ github.sha }}"
-        continue-on-error: true
+      - run: terraform -chdir=infra plan -var-file=env/${{ inputs.environment }}.tfvars -var="image_tag=${{ github.sha }}"
