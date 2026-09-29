@@ -130,7 +130,8 @@ npm run db:up             # start Postgres
 npm run db:setup          # start + migrate + create the test database
 npm run db:migrate        # apply migrations after a schema change
 npm run db:studio         # browse the data
-npm run db:seed           # a few sample messages
+npm run db:seed           # three queued sample messages
+npm run db:demo           # a realistic week of history, for demos (re-runnable)
 npm run db:down           # stop Postgres
 ```
 

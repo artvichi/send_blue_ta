@@ -113,6 +113,14 @@
         "cwd": "apps/server"
       },
       "cache": false
+    },
+    "db:demo": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "../../scripts/with-env.sh tsx prisma/demo.ts",
+        "cwd": "apps/server"
+      },
+      "cache": false
     }
   },
   "tags": [

@@ -13,6 +13,7 @@
     "db:migrate": "nx run server:db:migrate",
     "db:migrate:test": "nx run server:db:migrate:test",
     "db:seed": "nx run server:db:seed",
+    "db:demo": "nx run server:db:demo",
     "db:setup": "npm run db:up && npm run db:migrate && npm run db:test:create && npm run db:migrate:test",
     "db:studio": "nx run server:db:studio",
     "db:test:create": "docker compose exec -T postgres psql -U sbta -d postgres -c 'CREATE DATABASE sbta_test OWNER sbta' || true",
