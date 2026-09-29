@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ACTIVITY_RANGES, type ActivityDto, type ActivityRange } from '@sb/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -105,14 +105,6 @@ function Bars({
   const [box, width] = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
 
-  // Bars start flat and grow on the frame after mount. `key={range}` on this
-  // component remounts it per range, so a range change replays the entrance.
-  const [grown, setGrown] = useState(false);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setGrown(true));
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
   const max = Math.max(1, ...buckets.map((b) => b.delivered + b.inFlight + b.failed));
   const ticks = niceTicks(max);
   const top = ticks[ticks.length - 1] ?? max;
@@ -211,12 +203,15 @@ function Bars({
                     <clipPath id={clipId}>
                       <path d={roundedTop(x, stackTop, barW, stackH, RADIUS)} />
                     </clipPath>
+                    {/* A CSS keyframe, not a state flip: it starts on mount with
+                        no dependence on a frame callback, and `key={range}` on
+                        this component replays it on every range change. */}
                     <g
                       clipPath={`url(#${clipId})`}
+                      className="animate-grow-bar"
                       style={{
-                        transform: grown ? 'scaleY(1)' : 'scaleY(0)',
                         transformOrigin: `${x + barW / 2}px ${baseline}px`,
-                        transition: `transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1) ${i * 14}ms`,
+                        animationDelay: `${i * 14}ms`,
                       }}
                     >
                       {(() => {
