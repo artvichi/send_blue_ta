@@ -1,7 +1,7 @@
 import { MESSAGE_STATUSES } from '@sb/shared';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/status-badge';
-import { formatTime } from '@/lib/format';
+import { formatPhone, formatTime } from '@/lib/format';
 import { useMessageDetail } from '@/api/messages';
 
 /**
@@ -23,6 +23,17 @@ export function MessageTimeline({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* The table truncates the body; this is the one place it is shown whole. */}
+      <div className="rounded-xl border border-rule bg-surface px-4 py-3">
+        <p className="text-xs text-ink-mute">
+          To <span className="font-medium text-ink">{data.recipientName ?? formatPhone(data.to)}</span>
+          {data.recipientName && <span className="tabular-nums"> · {formatPhone(data.to)}</span>}
+        </p>
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
+          {data.body}
+        </p>
+      </div>
+
       <ol className="flex flex-col gap-0">
         {ordered.map((event, index) => (
           <li key={event.id} className="flex items-center gap-3 py-1">
@@ -50,7 +61,7 @@ export function MessageTimeline({ id }: { id: string }) {
         {data.lastError && (
           <div className="col-span-full">
             <dt className="text-ink-mute">Last error</dt>
-            <dd className="text-bad">{data.lastError}</dd>
+            <dd className="break-words text-bad">{data.lastError}</dd>
           </div>
         )}
       </dl>

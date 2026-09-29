@@ -68,7 +68,10 @@ export function MessageTable({ filter }: { filter: StatusFilter }) {
                           <span className="font-medium tabular-nums">{formatPhone(message.to)}</span>
                         )}
                       </td>
-                      <td className="max-w-[280px] truncate px-4 py-3 text-ink-soft">
+                      <td
+                        className="max-w-[280px] truncate px-4 py-3 text-ink-soft"
+                        title={message.body}
+                      >
                         {message.body}
                       </td>
                       <td className="px-4 py-3">
