@@ -16,8 +16,6 @@
     "libphonenumber-js": "1.13.12",
     "pg": "8.13.1",
     "pino": "10.3.1",
-    "pino-http": "11.0.0",
-    "pino-pretty": "13.0.0",
     "zod": "4.6.0"
   },
   "devDependencies": {
@@ -25,6 +23,7 @@
     "@types/express": "5.0.0",
     "@types/pg": "8.11.10",
     "@types/supertest": "6.0.2",
+    "pino-pretty": "13.0.0",
     "prisma": "7.10.0",
     "supertest": "7.0.0"
   }
