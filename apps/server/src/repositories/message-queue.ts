@@ -78,6 +78,39 @@ export async function reapExpiredLeases(now: Date, db: Db = prisma): Promise<num
   return ids.length;
 }
 
+export const ABANDONED_SEND_ERROR =
+  'Gateway lost contact mid-send; whether the message went out is unknown. Retry by hand if it did not arrive.';
+
+/**
+ * A lease that expired at ACCEPTED with no GUID is a send the gateway started
+ * and never finished reporting -- it died somewhere inside osascript. The
+ * outcome is unknown, so it cannot be requeued (that may text someone twice)
+ * and it must not sit "in flight" forever. It fails, with a reason, and a
+ * human decides from the dashboard.
+ *
+ * ACCEPTED *with* a GUID is a different case: the message exists in chat.db,
+ * only its watcher died. That is left alone for the delivery sweep.
+ */
+export async function failAbandonedSends(now: Date, db: Db = prisma): Promise<number> {
+  const abandoned = await db.message.findMany({
+    where: { status: 'ACCEPTED', providerGuid: null, leaseExpiresAt: { lt: now } },
+    select: { id: true },
+  });
+  if (abandoned.length === 0) return 0;
+
+  for (const { id } of abandoned) {
+    await db.$transaction(async (tx) => {
+      const { count } = await tx.message.updateMany({
+        where: { id, status: 'ACCEPTED', providerGuid: null },
+        data: { status: 'FAILED', lastError: ABANDONED_SEND_ERROR, leaseExpiresAt: null },
+      });
+      // A late report may have moved it since the read; then there is nothing to record.
+      if (count === 1) await recordEvent(id, 'FAILED', now, { error: ABANDONED_SEND_ERROR }, tx as unknown as Db);
+    });
+  }
+  return abandoned.length;
+}
+
 // ---------------------------------------------------------------------------
 // Status reporting
 // ---------------------------------------------------------------------------

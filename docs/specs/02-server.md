@@ -138,6 +138,14 @@ Helmet, a CORS allowlist, rate limiting on public routes, Zod validation at ever
 boundary, and constant-time token comparison. **Message bodies are never
 logged** — they are personal data, and the logger redacts them explicitly.
 
+## What the reaper does per state
+
+| Lease expired at | Reaper | Why |
+|---|---|---|
+| `DISPATCHING` | requeue | the gateway never acknowledged; nothing was sent |
+| `ACCEPTED`, no GUID | mark `FAILED` with a reason | the gateway died mid-`osascript`; outcome unknown, so never auto-resend -- a human retries |
+| `ACCEPTED` with GUID, `SENT`, `DELIVERED` | nothing | the message exists on the wire; only its watcher is gone |
+
 ## Recipients
 
 `recipients(id, name, handle UNIQUE)`. The handle is the identity, normalized by

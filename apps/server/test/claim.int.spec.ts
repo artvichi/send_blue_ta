@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db, resetDatabase, seedMessages } from './helpers.js';
-import { claimNextMessage, reapExpiredLeases } from '../src/repositories/message-queue.js';
+import { ABANDONED_SEND_ERROR, claimNextMessage, failAbandonedSends, reapExpiredLeases } from '../src/repositories/message-queue.js';
+import { applyStatusReport } from '../src/repositories/message-status.js';
 import { fifoPolicy } from '../src/domain/policies/index.js';
 
 beforeAll(async () => {
@@ -164,5 +165,63 @@ describe('reapExpiredLeases', () => {
     const reclaimed = await claimNextMessage(fifoPolicy, new Date(), 120, db);
 
     expect(reclaimed?.providerGuid).toBe('guid-already-sent');
+  });
+});
+
+describe('failAbandonedSends', () => {
+  async function acceptedThenDied(withGuid: boolean) {
+    const [seeded] = await seedMessages(1);
+    const claimed = await claimNextMessage(fifoPolicy, new Date(), 120, db);
+    await applyStatusReport(
+      { messageId: claimed!.id, dispatchToken: claimed!.dispatchToken, status: 'ACCEPTED', occurredAt: new Date(),
+        ...(withGuid ? { providerGuid: 'guid-real' } : {}) },
+      db,
+    );
+    await db.message.update({ where: { id: seeded!.id }, data: { leaseExpiresAt: new Date(Date.now() - 1000) } });
+    return seeded!.id;
+  }
+
+  it('fails a send the gateway started and never finished, with a reason', async () => {
+    const id = await acceptedThenDied(false);
+
+    expect(await failAbandonedSends(new Date(), db)).toBe(1);
+    const row = await db.message.findUniqueOrThrow({ where: { id }, include: { events: true } });
+    expect(row.status).toBe('FAILED');
+    expect(row.lastError).toBe(ABANDONED_SEND_ERROR);
+    expect(row.leaseExpiresAt).toBeNull();
+    expect(row.events.map((e) => e.status)).toContain('FAILED');
+  });
+
+  it('never requeues it -- the outcome is unknown and a resend could double-text', async () => {
+    const id = await acceptedThenDied(false);
+    await reapExpiredLeases(new Date(), db);
+    await failAbandonedSends(new Date(), db);
+    const row = await db.message.findUniqueOrThrow({ where: { id } });
+    expect(row.status).toBe('FAILED');
+    expect(await claimNextMessage(fifoPolicy, new Date(), 120, db)).toBeNull();
+  });
+
+  it('leaves an ACCEPTED message that has a GUID alone -- it was really sent', async () => {
+    const id = await acceptedThenDied(true);
+    expect(await failAbandonedSends(new Date(), db)).toBe(0);
+    expect((await db.message.findUniqueOrThrow({ where: { id } })).status).toBe('ACCEPTED');
+  });
+
+  it('leaves a live ACCEPTED lease alone', async () => {
+    await seedMessages(1);
+    const claimed = await claimNextMessage(fifoPolicy, new Date(), 120, db);
+    await applyStatusReport(
+      { messageId: claimed!.id, dispatchToken: claimed!.dispatchToken, status: 'ACCEPTED', occurredAt: new Date() },
+      db,
+    );
+    expect(await failAbandonedSends(new Date(), db)).toBe(0);
+  });
+
+  it('can be retried by hand from FAILED like any other failure', async () => {
+    const id = await acceptedThenDied(false);
+    await failAbandonedSends(new Date(), db);
+    const { retryMessage } = await import('../src/repositories/messages.js');
+    expect((await retryMessage(id, db)).ok).toBe(true);
+    expect((await db.message.findUniqueOrThrow({ where: { id } })).status).toBe('QUEUED');
   });
 });

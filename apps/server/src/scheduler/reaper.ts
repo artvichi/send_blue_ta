@@ -1,7 +1,7 @@
 import { prisma } from '../db/prisma.js';
 import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
-import { reapExpiredLeases } from '../repositories/message-queue.js';
+import { failAbandonedSends, reapExpiredLeases } from '../repositories/message-queue.js';
 import { queueState } from './queue-state.js';
 
 /**
@@ -45,9 +45,12 @@ export function startReaper(): Reaper {
 
 async function reapOnce(): Promise<number> {
   try {
-    const count = await reapExpiredLeases(new Date(), prisma);
+    const now = new Date();
+    const count = await reapExpiredLeases(now, prisma);
     if (count > 0) logger.warn({ count }, 'reclaimed expired leases');
-    return count;
+    const failed = await failAbandonedSends(now, prisma);
+    if (failed > 0) logger.error({ count: failed }, 'sends abandoned mid-flight marked failed');
+    return count + failed;
   } catch (err) {
     logger.error({ err }, 'lease reaper failed');
     return 0;
