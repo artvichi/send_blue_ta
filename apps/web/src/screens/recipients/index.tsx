@@ -6,7 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { useRecipients } from '@/api/recipients';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { RecipientForm } from './recipient-form';
+import { Card } from '@/components/ui/card';
+import { RecipientForm } from '@/components/recipient-form';
 import { RecipientRow } from './recipient-row';
 
 export function RecipientsPage() {
@@ -26,7 +27,9 @@ export function RecipientsPage() {
         </p>
       </div>
 
-      <RecipientForm initialTo={params.get('to') ?? undefined} />
+      <Card className="p-5 sm:p-6">
+        <RecipientForm initialTo={params.get('to') ?? undefined} />
+      </Card>
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ink-mute" />

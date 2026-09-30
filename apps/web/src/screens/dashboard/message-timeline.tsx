@@ -1,5 +1,8 @@
 import { MESSAGE_STATUSES } from '@sb/shared';
+import { UserPlus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddRecipientDialog } from '@/components/add-recipient-dialog';
 import { StatusBadge } from '@/components/status-badge';
 import { formatPhone, formatTime } from '@/lib/format';
 import { useMessageDetail } from '@/api/messages';
@@ -25,10 +28,23 @@ export function MessageTimeline({ id }: { id: string }) {
     <div className="flex flex-col gap-4">
       {/* The table truncates the body; this is the one place it is shown whole. */}
       <div className="rounded-xl border border-rule bg-surface px-4 py-3">
-        <p className="text-xs text-ink-mute">
-          To <span className="font-medium text-ink">{data.recipientName ?? formatPhone(data.to)}</span>
-          {data.recipientName && <span className="tabular-nums"> · {formatPhone(data.to)}</span>}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-ink-mute">
+            To <span className="font-medium text-ink">{data.recipientName ?? formatPhone(data.to)}</span>
+            {data.recipientName && <span className="tabular-nums"> · {formatPhone(data.to)}</span>}
+          </p>
+          {!data.recipientName && (
+            <AddRecipientDialog
+              handle={data.to}
+              trigger={
+                <Button type="button" variant="secondary" size="sm" onClick={(e) => e.stopPropagation()}>
+                  <UserPlus />
+                  Add to recipients
+                </Button>
+              }
+            />
+          )}
+        </div>
         <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
           {data.body}
         </p>

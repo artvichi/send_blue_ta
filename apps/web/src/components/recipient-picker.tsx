@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { AtSign, BookUser, Phone, UserPlus } from 'lucide-react';
 import { parseHandle, type RecipientDto } from '@sb/shared';
 import { Input } from '@/components/ui/input';
+import { AddRecipientDialog } from '@/components/add-recipient-dialog';
 import { useRecipients } from '@/api/recipients';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { cn } from '@/lib/utils';
@@ -150,12 +150,14 @@ export function RecipientPicker({ id, value, onChange, onBlur, invalid, describe
         <p className="flex items-center gap-1.5 text-xs text-ink-mute">
           <UserPlus className="size-3.5" aria-hidden />
           Not in your recipients.{' '}
-          <Link
-            to={`/recipients?to=${encodeURIComponent(parsed.handle)}`}
-            className="font-medium text-brand underline-offset-2 hover:underline"
-          >
-            Add them
-          </Link>
+          <AddRecipientDialog
+            handle={parsed.handle}
+            trigger={
+              <button type="button" className="font-medium text-brand underline-offset-2 hover:underline">
+                Add them
+              </button>
+            }
+          />
         </p>
       ) : null}
     </div>
